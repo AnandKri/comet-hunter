@@ -19,22 +19,22 @@ Learn by Building
   - domain vs infrastructure separation
 - transaction management and unit of work
 - idempotent system design
-- state modelling and finite state machine
+- state modelling (finite state machine)
 - scheduling and temporal modeling
-- concurrency thinking
+- concurrency design
   - thread safety
-  - race conditions
+  - race condition handling
   - concurrent job execution
-- indexing and query optimization
+- database performance
+  - indexing strategy
   - query planning
-  - access tradeoffs
-- bootstraping and initialization design
+  - access patterns
+- bootstraping and schema initialization
 - observability and traceability
 - data pipeline architecture
-- defensive system design
-- schema design strategy
-  - relational modeling
-  - integrity enforcement
+- relational schema design
+  - data modeling
+  - integrity and constraint enforcement
 
 ---
 
