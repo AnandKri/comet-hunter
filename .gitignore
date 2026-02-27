@@ -1,0 +1,8 @@
+# byte-complied
+__pycache__/
+
+#virtual environment
+venv/
+
+# misc. files
+plan.txt
