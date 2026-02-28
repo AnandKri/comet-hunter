@@ -1,8 +1,26 @@
 from dataclasses import dataclass
 from typing import Optional
 
-@dataclass
+@dataclass(frozen=True)
 class FileMetadata:
+    """
+    Domain entity representing a file metadata
+
+    Each instance models a metadata of a single file.
+    Metadata contains file name, datetime of observation,
+    instrument used for observation, exposure time, pixel
+    numbers in width and height, roll angle
+
+    Attributes:
+        raw_file_name: raw file name as present in the data 
+        raw_file_hash: calculated file hash value, will be null initially
+        datetime_of_observation: date and time of observation
+        instrument: instrument used for observation
+        exposure_time: exposure time for taking the image
+        width: number of pixels
+        height: number of pixels
+        roll: roll angle of camera while taking the observation
+    """
     raw_file_name: str 
     raw_file_hash: Optional[str]
     datetime_of_observation: str

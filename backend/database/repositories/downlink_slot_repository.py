@@ -4,6 +4,7 @@ from typing import Optional, ClassVar
 from backend.database.infrastructure.base import DatabaseBase
 from datetime import datetime, UTC
 from backend.database.domain.downlink_slot import DownlinkSlot
+from backend.database.infrastructure.query_spec import QuerySpec
 
 class DownlinkSlotRepository(DatabaseBase):
     """
@@ -44,8 +45,8 @@ class DownlinkSlotRepository(DatabaseBase):
             ON {cls.table_name} (status, bot_utc)
         """
     
-    def create_slot(self, wk: int, doy: int, wdy: str, bot_utc: str, eot_utc: str, 
-                    ant: Optional[str], status: SlotStatus) -> bool:
+    def create_slot_sql(self, wk: int, doy: int, wdy: str, bot_utc: str, eot_utc: str, 
+                    ant: Optional[str], status: SlotStatus) -> QuerySpec:
         """
         Checks if slot status is valid or not.
         Creates the slot details to a row in the table. 

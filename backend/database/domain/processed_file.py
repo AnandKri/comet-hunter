@@ -2,9 +2,35 @@ from dataclasses import dataclass
 from typing import Optional
 from util.enums import FileStatus
 
-@dataclass
+@dataclass(frozen=True)
 class ProcessedFile:
+    """
+    Domain entity representing the processing state of a raw image file.
 
+    Tracks the transformation of a raw file into its processed output,
+    including hash integrity, storage paths, retry attempts, and lifecycle
+    status within the pipeline.
+
+    Attributes:
+        raw_file_hash: Content hash of the original raw file.
+        raw_file_name: Original raw file name.
+        raw_file_path: Storage path of the raw file.
+        raw_file_size: Size of the raw file in bytes.
+
+        processed_file_hash: Content hash of the processed file.
+        processed_file_name: Processed file name.
+        processed_file_path: Storage path of the processed file.
+        processed_file_size: Size of the processed file in bytes.
+
+        status: Current processing lifecycle state.
+        error_message: Error details if processing failed.
+        processed_at: UTC timestamp when processing completed.
+        last_attempt_at: UTC timestamp of the most recent processing attempt.
+        attempt_count: Number of processing attempts made.
+
+    Invariants:
+        - status value is one of the FileStatus enums
+    """
     raw_file_hash: str
     raw_file_name: str
     raw_file_path: str

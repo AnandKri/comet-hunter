@@ -1,43 +1,30 @@
-## Comet Hunter project (Work-In-Progress)
+## Comet Hunter ( Work in Progress )
 
-This project is created to help citizen scientists to discover comets
+This project aims to help citizen scientists discover comets.
 
-Expected finished deliverable can be viewed [here](https://soho.nascom.nasa.gov/data/LATEST/current_c3.gif) where processed images 
-are provided in a movie format which makes it easier to spot sungrazer 
-comets - often too faint to spot in a single frame.
+The intended end result is similar to [this output](https://soho.nascom.nasa.gov/data/LATEST/current_c3.gif) where processed images 
+are compiled into a time-sequenced movie format, making faint sungrazing comets easier to detect than in individual frames.
 
-You can refer to [sungrazer project](https://sungrazer.nrl.navy.mil/) for more information.
+You can refer to the [Sungrazer Project](https://sungrazer.nrl.navy.mil/) for more information.
 
 ---
 
-### Aim of the project
+### Project Design Principles
 
-Learn by Building
-- domain driven design
-  - ubiquitous language
-  - entity modeling
-  - domain vs infrastructure separation
-- transaction management and unit of work
-- idempotent system design
-- state modelling (finite state machine)
-- scheduling and temporal modeling
-- concurrency design
-  - thread safety
-  - race condition handling
-  - concurrent job execution
-- database performance
-  - indexing strategy
-  - query planning
-  - access patterns
-- bootstraping and schema initialization
-- observability and traceability
-- data pipeline architecture
-- relational schema design
-  - data modeling
-  - integrity and constraint enforcement
+1. **Domain-Centric Architecture**  
+Clear separation between domain, repository, and infrastructure layers, with explicit entity modeling and enum-driven state representation.
+
+2. **Idempotent, State-Driven Pipeline**  
+Incremental ingestion (slots → metadata → files) governed by explicit finite state transitions and safe retry logic.
+
+3. **Scoped Consistency & Execution Model**  
+Per-query transactional guarentees with no long-running transactions, and strict separation of database writes from network/file I/O.
+
+4. **Relational Integrity, Performance & Observability**  
+Normalized schema with constraints and indexing, structured logging at infrastructure boundaries and deterministic initialization.
 
 ---
 
 ### Definition of project being successful
 
-At least one comet is discovered using this project
+At least one previously undiscovered comet is identified using this system.
