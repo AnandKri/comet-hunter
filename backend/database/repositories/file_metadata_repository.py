@@ -1,15 +1,21 @@
 from backend.util.constants import DB
+from backend.util.enums import FetchType, OperationType
 from typing import Optional, ClassVar
 from backend.database.infrastructure.base import DatabaseBase
 from backend.database.domain.file_metadata import FileMetadata
+from backend.database.infrastructure.query_spec import QuerySpec
+from backend.database.infrastructure.query_executor import QueryExecutor
 
-class FileMetadataRepository(DatabaseBase):
+class FileMetadataRepository:
     """
     This class is for `file_metadata` table required to keep a log
     of file metadata, useful beforehand while retrieving the raw data.
     """
     
     table_name: ClassVar[str] = DB.FILE_METADATA
+
+    def __init__(self, executor: QueryExecutor):
+        self._executor = executor
 
     @classmethod
     def create_table_sql(cls) -> str:
@@ -63,8 +69,9 @@ class FileMetadataRepository(DatabaseBase):
         :param roll: frame roll if any
         :return: Returns True only if the number of created rows is 1
         """
-        with self.get_connection() as conn:
-            row_created = conn.execute(f"""
+        
+        spec = QuerySpec(
+            sql = f"""
                 INSERT OR IGNORE INTO {self.table_name}
                 (raw_file_name,
                 raw_file_hash,
@@ -75,7 +82,9 @@ class FileMetadataRepository(DatabaseBase):
                 height, 
                 roll)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                """,
+            operation=OperationType.WRITE,
+            params=(
                     raw_file_name, 
                     raw_file_hash, 
                     datetime_of_observation,
@@ -84,8 +93,12 @@ class FileMetadataRepository(DatabaseBase):
                     width, 
                     height, 
                     roll
-                ))
-        return row_created.rowcount == 1
+                )
+        )
+        
+        result = self._executor.execute(spec)
+        
+        return result.rows_affected == 1
     
     def read_metadata(self):
         pass

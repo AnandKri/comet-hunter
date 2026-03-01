@@ -1,12 +1,13 @@
 from backend.util.constants import DB
-from backend.util.enums import SlotStatus
+from backend.util.enums import SlotStatus,FetchType,OperationType
 from typing import Optional, ClassVar
-from backend.database.infrastructure.base import DatabaseBase
 from datetime import datetime, UTC
 from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.database.infrastructure.query_spec import QuerySpec
+from backend.database.infrastructure.query_executor import QueryExecutor
 
-class DownlinkSlotRepository(DatabaseBase):
+
+class DownlinkSlotRepository:
     """
     This class is for `downlink_slot` table required to monitor/log slots for downlink 
     raw images, as and when they will be available. 
@@ -14,6 +15,9 @@ class DownlinkSlotRepository(DatabaseBase):
 
     table_name: ClassVar[str] = DB.DOWNLINK_SLOT
 
+    def __init__(self, executor: QueryExecutor):
+        self._executor = executor
+    
     @classmethod
     def create_table_sql(cls) -> str:
         """
@@ -45,8 +49,8 @@ class DownlinkSlotRepository(DatabaseBase):
             ON {cls.table_name} (status, bot_utc)
         """
     
-    def create_slot_sql(self, wk: int, doy: int, wdy: str, bot_utc: str, eot_utc: str, 
-                    ant: Optional[str], status: SlotStatus) -> QuerySpec:
+    def create_slot(self, wk: int, doy: int, wdy: str, bot_utc: str, eot_utc: str, 
+                    ant: Optional[str], status: SlotStatus) -> bool:
         """
         Checks if slot status is valid or not.
         Creates the slot details to a row in the table. 
@@ -64,15 +68,19 @@ class DownlinkSlotRepository(DatabaseBase):
         if not isinstance(status, SlotStatus):
             raise ValueError("status must be SlotStatus enum")
         
-        with self.get_connection() as conn:
-            row_created = conn.execute(f"""
+        spec = QuerySpec(
+            sql=f"""
                 INSERT OR IGNORE INTO {self.table_name}
                 (wk,doy,wdy,bot_utc,eot_utc,ant,status)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    wk, doy, wdy, bot_utc, eot_utc, ant, status.value
-                ))
-        return row_created.rowcount == 1
+                """,
+            operation=OperationType.WRITE,
+            params=(wk, doy, wdy, bot_utc, eot_utc, ant, status.value)
+        )
+
+        result = self._executor.execute(spec)
+
+        return result.rows_affected == 1
     
     def claim_next_slot(self) -> Optional[DownlinkSlot]:
         """
@@ -81,8 +89,9 @@ class DownlinkSlotRepository(DatabaseBase):
         :return: Returns complete slot information
         """
         now = str(datetime.now(UTC).isoformat())
-        with self.get_connection() as conn:
-            cursor = conn.execute(f"""
+
+        spec = QuerySpec(
+            sql = f"""
                 UPDATE {self.table_name}
                 SET status = ?
                 WHERE id = (
@@ -94,13 +103,20 @@ class DownlinkSlotRepository(DatabaseBase):
                     LIMIT 1
                 )
                 RETURNING *
-                """, (SlotStatus.ACTIVE.value,SlotStatus.PENDING.value,now)
-                )
+                """,
+            operation=OperationType.READ,
+            params=(SlotStatus.ACTIVE.value,
+                    SlotStatus.PENDING.value,
+                    now),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(spec)
+
+        if result.data is None:
+            return None
         
-        row = cursor.fetchone()
-        if row:
-            return DownlinkSlot.from_row(row)
-        return None
+        return DownlinkSlot.from_row(result.data)
         
     def update_status(self, status: SlotStatus, id: int) -> bool:
         """
@@ -115,15 +131,19 @@ class DownlinkSlotRepository(DatabaseBase):
         if not isinstance(status, SlotStatus):
             raise ValueError("status must be SlotStatus enum")
         
-        with self.get_connection() as conn:
-            row_updated = conn.execute(f"""
+        spec = QuerySpec(
+            sql = f"""
                 UPDATE {self.table_name}
                 SET status = ?
                 WHERE id = ?
                 """,
-                (status.value, id))
+            operation = OperationType.WRITE,
+            params = (status.value, id) 
+        )
 
-        return row_updated.rowcount == 1
+        result = self._executor.execute(spec)
+
+        return result.rows_affected == 1
     
     def delete_slot(self, id: int) -> bool:
         """
@@ -131,15 +151,19 @@ class DownlinkSlotRepository(DatabaseBase):
         :param id: Primary key
         :return: Returns boolean
         """
-        
-        with self.get_connection() as conn:
-            row_deleted = conn.execute(f"""
+
+        spec = QuerySpec(
+            sql = f"""
                 DELETE FROM {self.table_name}
                 WHERE id = ?
                 AND status IN (?, ?)
                 """,
-                (id,
+            operation=OperationType.WRITE,
+            params=(id,
                  SlotStatus.DONE.value,
                  SlotStatus.MISSED.value)
-                )
-        return row_deleted.rowcount == 1
+        )
+        
+        result = self._executor.execute(spec)
+
+        return result.rows_affected == 1

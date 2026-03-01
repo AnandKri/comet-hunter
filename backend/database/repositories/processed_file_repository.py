@@ -1,16 +1,20 @@
 from backend.util.constants import DB
-from backend.util.enums import FileStatus
+from backend.util.enums import FileStatus, FetchType, OperationType
 from typing import Optional, ClassVar
-from backend.database.infrastructure.base import DatabaseBase
 from backend.database.domain.processed_file import ProcessedFile
+from backend.database.infrastructure.query_spec import QuerySpec
+from backend.database.infrastructure.query_executor import QueryExecutor
 
-class ProcessedFileRepository(DatabaseBase):
+class ProcessedFileRepository:
     """
     This class is for `processed_file` table required to keep a log
     of which files are processed and which are not. 
     """
     
     table_name: ClassVar[str] = DB.PROCESSED_FILE
+
+    def __init__(self, executor: QueryExecutor):
+        self._executor = executor
 
     @classmethod
     def create_table_sql(cls) -> str:
@@ -85,8 +89,8 @@ class ProcessedFileRepository(DatabaseBase):
         if not isinstance(status, FileStatus):
             raise ValueError("status must be FileStatus enum")
         
-        with self.get_connection() as conn:
-            row_created = conn.execute(f"""
+        spec = QuerySpec(
+            sql = f"""
                 INSERT OR IGNORE INTO {self.table_name}
                 (raw_file_hash,
                 raw_file_name,
@@ -102,7 +106,9 @@ class ProcessedFileRepository(DatabaseBase):
                 last_attempt_at,
                 attempt_count)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                """,
+            operation=OperationType.WRITE,
+            params=(
                     raw_file_hash,
                     raw_file_name,
                     raw_file_path,
@@ -116,8 +122,12 @@ class ProcessedFileRepository(DatabaseBase):
                     processed_at,
                     last_attempt_at,
                     attempt_count
-                ))
-        return row_created.rowcount == 1
+                )
+        )
+        
+        result = self._executor.execute(spec)
+
+        return result.rows_affected == 1
     
     def read_file(self):
         pass

@@ -3,6 +3,7 @@ from query_result import QueryResult
 from base import DatabaseBase
 from backend.util.enums import FetchType, OperationType
 import logging
+from execeptions import DatabaseExecutionError
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class QueryExecutor:
         - Managing transaction boundaries (commit/rollback)
         - Executeing parameterized queries
         - Normalizing database responses into `QueryResult`
-        - Capturing and logging execution failures
+        - raising and logging execution failures
     
     Acts as the single boundary between repositories and the 
     underlying database connection
@@ -39,23 +40,17 @@ class QueryExecutor:
                     if query.fetch is FetchType.ONE:
                         row = cursor.fetchone()
                         return QueryResult(
-                            success=True,
                             data=row
                         )
                     elif query.fetch is FetchType.ALL:
                         rows = cursor.fetchall()
                         return QueryResult(
-                            success=True,
                             data=rows
                         )
                 else:
                     return QueryResult(
-                        success=True,
                         affected_rows=cursor.rowcount
                     )
         except Exception as e:
             logger.exception("Database query failed")
-            return QueryResult(
-                success=False,
-                error_message=str(e)
-            )
+            raise DatabaseExecutionError(str(e)) from e
