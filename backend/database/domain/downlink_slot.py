@@ -13,7 +13,6 @@ class DownlinkSlot:
     ingestion pipeline
 
     Attributes:
-        id: Unique id.
         wk: week number of the year.
         doy: Day of year.
         wdy: day of the week.
@@ -25,7 +24,6 @@ class DownlinkSlot:
     Invariants:
         - status transitions must contain SlotStatus enum values
     """
-    id: int
     wk: int
     doy: int
     wdy: str
@@ -37,7 +35,6 @@ class DownlinkSlot:
     @classmethod
     def from_row(cls, row):
         return cls(
-            id=row["id"],
             wk=row["wk"],
             doy=row["doy"],
             wdy=row["wdy"],

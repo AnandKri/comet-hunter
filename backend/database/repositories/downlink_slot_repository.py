@@ -25,7 +25,6 @@ class DownlinkSlotRepository:
         """
         return f"""
             CREATE TABLE IF NOT EXISTS {cls.table_name} (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 wk INTEGER NOT NULL,
                 doy INTEGER NOT NULL,
                 wdy TEXT NOT NULL,
@@ -34,7 +33,7 @@ class DownlinkSlotRepository:
                 ant TEXT,
                 status TEXT NOT NULL CHECK(status IN ('{SlotStatus.MISSED.value}', 
                 '{SlotStatus.PENDING.value}','{SlotStatus.ACTIVE.value}','{SlotStatus.DONE.value}')),
-                UNIQUE(wk, doy, bot_utc, ant)
+                PRIMARY KEY (wk, doy, wdy, bot_utc)
             )
         """
     
@@ -84,7 +83,7 @@ class DownlinkSlotRepository:
     
     def claim_next_slot(self) -> Optional[DownlinkSlot]:
         """
-        Gets current running slot if possible
+        Gets next runnable slot
         Update status from `Pending` to `Active`
         :return: Returns complete slot information
         """
@@ -94,8 +93,8 @@ class DownlinkSlotRepository:
             sql = f"""
                 UPDATE {self.table_name}
                 SET status = ?
-                WHERE id = (
-                    SELECT id
+                WHERE (wk, doy, wdy, bot_utc) = (
+                    SELECT wk, doy, wdy, bot_utc
                     FROM {self.table_name}
                     WHERE status = ?
                     AND bot_utc <= ?
@@ -118,14 +117,13 @@ class DownlinkSlotRepository:
         
         return DownlinkSlot.from_row(result.data)
         
-    def update_status(self, status: SlotStatus, id: int) -> bool:
+    def update_status(self, status: SlotStatus, slot: DownlinkSlot) -> bool:
         """
-        Updates slot status for a single slot, located based on 
-        slot id value (primary key)
+        Updates slot status for a single slot, using its domain identity
 
         :param status: New status of the slot
-        :param id: primary key
-        :return: Returns True only if the number of rows updated is 1
+        :param slot: Slot whose identity is used for lookup
+        :return: True only if exactly one row was updated
         """
         
         if not isinstance(status, SlotStatus):
@@ -135,33 +133,46 @@ class DownlinkSlotRepository:
             sql = f"""
                 UPDATE {self.table_name}
                 SET status = ?
-                WHERE id = ?
+                WHERE wk = ?
+                AND doy = ?
+                AND wdy = ?
+                AND bot_utc = ?
                 """,
             operation = OperationType.WRITE,
-            params = (status.value, id) 
+            params = (status.value,
+                      slot.wk,
+                      slot.doy,
+                      slot.wdy,
+                      slot.bot_utc) 
         )
 
         result = self._executor.execute(spec)
 
         return result.rows_affected == 1
     
-    def delete_slot(self, id: int) -> bool:
+    def delete_slot(self, slot: DownlinkSlot) -> bool:
         """
-        Deletes a `DONE` or `MISSED` slot based on id
-        :param id: Primary key
-        :return: Returns boolean
+        Deletes a `DONE` or `MISSED` slot based on its domain identity
+        :param slot: Slot whose identity is used for lookup
+        :return: True only if exactly one row was delete
         """
 
         spec = QuerySpec(
             sql = f"""
                 DELETE FROM {self.table_name}
-                WHERE id = ?
+                WHERE wk = ?
+                AND doy = ?
+                AND wdy = ?
+                AND bot_utc = ?
                 AND status IN (?, ?)
                 """,
             operation=OperationType.WRITE,
-            params=(id,
-                 SlotStatus.DONE.value,
-                 SlotStatus.MISSED.value)
+            params=(slot.wk,
+                    slot.doy,
+                    slot.wdy,
+                    slot.bot_utc,
+                    SlotStatus.DONE.value,
+                    SlotStatus.MISSED.value)
         )
         
         result = self._executor.execute(spec)
