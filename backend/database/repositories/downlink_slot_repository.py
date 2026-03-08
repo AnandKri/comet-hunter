@@ -117,16 +117,16 @@ class DownlinkSlotRepository:
         
         return DownlinkSlot.from_row(result.data)
         
-    def update_status(self, status: SlotStatus, slot: DownlinkSlot) -> bool:
+    def update_status(self, newStatus: SlotStatus, slot: DownlinkSlot) -> bool:
         """
         Updates slot status for a single slot, using its domain identity
 
-        :param status: New status of the slot
+        :param newStatus: New status of the slot
         :param slot: Slot whose identity is used for lookup
         :return: True only if exactly one row was updated
         """
         
-        if not isinstance(status, SlotStatus):
+        if not isinstance(newStatus, SlotStatus):
             raise ValueError("status must be SlotStatus enum")
         
         spec = QuerySpec(
@@ -139,7 +139,7 @@ class DownlinkSlotRepository:
                 AND bot_utc = ?
                 """,
             operation = OperationType.WRITE,
-            params = (status.value,
+            params = (newStatus.value,
                       slot.wk,
                       slot.doy,
                       slot.wdy,
@@ -178,3 +178,25 @@ class DownlinkSlotRepository:
         result = self._executor.execute(spec)
 
         return result.rows_affected == 1
+    
+    def delete_completed_slots(self) -> int:
+        """
+        Deletes all slots whose status is `DONE` or `MISSED`.
+        :return: Number of rows deleted
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                DELETE FROM {self.table_name}
+                WHERE status IN (?, ?)
+            """,
+            operation=OperationType.WRITE,
+            params=(
+                SlotStatus.DONE.value,
+                SlotStatus.MISSED.value
+            )
+        )
+
+        result = self._executor.execute(spec)
+
+        return result.rows_affected

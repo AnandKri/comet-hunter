@@ -14,9 +14,10 @@ class FileStatus(Enum):
     Contains Enum values for various status
     of file being processed 
     """
-    SUCCESS = "SUCCESS"
-    PARTIAL = "PARTIAL"
+    NEW = "NEW"
+    PENDING = "PENDING"
     FAILED = "FAILED"
+    SUCCESS = "SUCCESS"
 
 class FetchType(Enum):
     """

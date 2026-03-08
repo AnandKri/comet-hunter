@@ -100,11 +100,129 @@ class FileMetadataRepository:
         
         return result.rows_affected == 1
     
-    def read_metadata(self):
-        pass
+    def read_metadata(self, raw_file_name: str) -> Optional[FileMetadata]:
+        """
+        Fetch metadata using raw file name
 
-    def update_metadata(self):
-        pass
+        :param raw_file_name: raw file name primary key
+        :return: returns complete file metadata 
+        """
 
-    def delete_metadata(self):
-        pass
+        spec = QuerySpec(
+            sql=f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE raw_file_name = ?
+            """,
+            operation=OperationType.READ,
+            params=(raw_file_name,),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(spec)
+
+        if result.data is None:
+            return None
+        
+        return FileMetadata.from_row(result.data)
+
+    def update_hash(self, file: FileMetadata) -> bool:
+        """
+        Updates hash value of raw file
+
+        :param file: FileMetadata domain entity containing updated hash
+        :return: True only if exactly one row was updated
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                UPDATE {self.table_name}
+                SET raw_file_hash = ?
+                WHERE raw_file_name = ?
+            """,
+            operation=OperationType.WRITE,
+            params=(
+                file.raw_file_hash,
+                file.raw_file_name
+            )
+        )
+
+        result = self._executor.execute(spec)
+
+        return result.rows_affected == 1
+
+    def delete_metadata(self, file: FileMetadata) -> bool:
+        """
+        Deletes metadata entry for a file
+
+        :param file: file domain entity
+        :return : returns boolean value, True when deletion happened
+        """
+
+        spec=QuerySpec(
+            sql=f"""
+                DELETE FROM {self.table_name}
+                WHERE raw_file_name = ?
+            """,
+            operation=OperationType.WRITE,
+            params=(file.raw_file_name,)
+        )
+
+        result = self._executor.execute(spec)
+
+        return result.rows_affected == 1
+    
+    def exists(self, raw_file_name: str) -> bool:
+        """
+        Checks if metadata entry exists
+
+        :param raw_file_name: raw file name
+        :return: True if row exists
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT 1
+                FROM {self.table_name}
+                WHERE raw_file_name = ?
+                LIMIT 1
+            """,
+            operation=OperationType.READ,
+            params=(raw_file_name,),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(spec)
+
+        return result.data is not None
+    
+    def get_files(self, instrument: str, start: str, end: str) -> list[FileMetadata]:
+        """
+        Fetch metadata for a specific instrument within a time range
+
+        :param instrument: instrument name
+        :param start: start datetime (ISO string)
+        :param end: end datetime (ISO string)
+        :return: list of FileMetadata objects
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE instrument = ?
+                AND datetime_of_observation >= ?
+                AND datetime_of_observation <= ?
+                ORDER BY datetime_of_observation ASC
+            """,
+            operation=OperationType.READ,
+            params=(instrument, start, end),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [FileMetadata.from_row(row) for row in result.data]
