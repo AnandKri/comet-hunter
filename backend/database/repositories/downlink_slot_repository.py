@@ -81,41 +81,82 @@ class DownlinkSlotRepository:
 
         return result.rows_affected == 1
     
-    def claim_next_slot(self) -> Optional[DownlinkSlot]:
+    def get_current_active_slot(self) -> Optional[DownlinkSlot]:
         """
-        Gets next runnable slot
-        Update status from `Pending` to `Active`
+        1. Marks expired slots as `MISSED` (Mandatory Step)
+        2. Gets `ACTIVE` slot if present
+        3. If `ACTIVE` slot is not present then
+        Gets logically Active slots and Updates its status 
+        from `PENDING` to `ACTIVE`
         :return: Returns complete slot information
         """
         now = str(datetime.now(UTC).isoformat())
 
-        spec = QuerySpec(
-            sql = f"""
+        cleanup = QuerySpec(
+            sql=f"""
                 UPDATE {self.table_name}
                 SET status = ?
-                WHERE (wk, doy, wdy, bot_utc) = (
-                    SELECT wk, doy, wdy, bot_utc
-                    FROM {self.table_name}
-                    WHERE status = ?
-                    AND bot_utc <= ?
-                    ORDER BY bot_utc ASC
-                    LIMIT 1
-                )
-                RETURNING *
+                WHERE eot_utc < ?
+                AND status IN (?, ?)
+                """,
+            operation=OperationType.WRITE,
+            params=(SlotStatus.MISSED.value,
+                    now,
+                    SlotStatus.PENDING.value,
+                    SlotStatus.ACTIVE.value)
+        )
+        _ = self._executor.execute(cleanup)
+
+        active_spec = QuerySpec(
+            sql = f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE status = ?
+                AND bot_utc <= ?
+                AND eot_utc >= ?
+                LIMIT 1
                 """,
             operation=OperationType.READ,
-            params=(SlotStatus.ACTIVE.value,
-                    SlotStatus.PENDING.value,
+            params=(
+                SlotStatus.ACTIVE.value,
+                now,
+                now
+            ),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(active_spec)
+
+        if result.data:
+            return DownlinkSlot.from_row(result.data)
+        
+        claim_spec = QuerySpec(
+            sql = f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE status = ?
+                AND bot_utc <= ?
+                AND eot_utc >= ?
+                ORDER BY bot_utc ASC
+                LIMIT 1
+                """,
+            operation=OperationType.READ,
+            params=(SlotStatus.PENDING.value,
+                    now,
                     now),
             fetch=FetchType.ONE
         )
 
-        result = self._executor.execute(spec)
+        result = self._executor.execute(claim_spec)
 
         if result.data is None:
             return None
         
-        return DownlinkSlot.from_row(result.data)
+        claimed_slot = DownlinkSlot.from_row(result.data)
+
+        self.update_status(newStatus = SlotStatus.ACTIVE.value, slot = claimed_slot)
+        
+        return claimed_slot
         
     def update_status(self, newStatus: SlotStatus, slot: DownlinkSlot) -> bool:
         """
