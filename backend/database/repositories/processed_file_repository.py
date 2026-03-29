@@ -12,6 +12,8 @@ class ProcessedFileRepository:
     """
     
     table_name: ClassVar[str] = DB.PROCESSED_FILE
+    max_processing_attempts: ClassVar[int] = 2
+    max_downloading_attempts: ClassVar[int] = 2
 
     def __init__(self, executor: QueryExecutor):
         self._executor = executor
@@ -21,6 +23,9 @@ class ProcessedFileRepository:
         """
         Query to create `processed_file` table.
         """
+
+        allowed_statuses = ",".join(f"'{status.value}'" for status in FileStatus)
+
         return f"""
             CREATE TABLE IF NOT EXISTS {cls.table_name} (
                 raw_file_hash TEXT PRIMARY KEY,
@@ -31,12 +36,14 @@ class ProcessedFileRepository:
                 processed_file_name UNIQUE TEXT,
                 processed_file_path UNIQUE TEXT,
                 processed_file_size INTEGER,
-                status TEXT NOT NULL CHECK(status IN ('{FileStatus.SUCCESS.value}',
-                '{FileStatus.FAILED.value}','{FileStatus.PENDING.value}','{FileStatus.NEW.value}')),
+                status TEXT NOT NULL CHECK(status IN ({allowed_statuses})),
                 error_message TEXT,
+                downloaded_at TEXT,
+                last_downloading_attempt_at TEXT NOT NULL,
+                downloading_attempt_count INTEGER NOT NULL DEFAULT 0,
                 processed_at TEXT,
-                last_attempt_at TEXT NOT NULL,
-                attempt_count INTEGER NOT NULL DEFAULT 1
+                last_processing_attempt_at TEXT NOT NULL,
+                processing_attempt_count INTEGER NOT NULL DEFAULT 0
             )
         """
     
@@ -45,11 +52,11 @@ class ProcessedFileRepository:
         """
         Query to create index for `processed_file` table
         for faster accessibility while filtering based 
-        on status and last_attempt_at.
+        on status and last_downloading_attempt_at.
         """
         return f"""
             CREATE INDEX IF NOT EXISTS idx_processed_status_time
-            ON {cls.table_name} (status, last_attempt_at)
+            ON {cls.table_name} (status, last_downloading_attempt_at)
         """
     
     def create_file(self,
@@ -63,9 +70,12 @@ class ProcessedFileRepository:
                     processed_file_size: Optional[int],
                     status: FileStatus,
                     error_message: Optional[str],
+                    downloaded_at: Optional[str],
+                    last_downloading_attempt_at: str,
+                    downloading_attempt_count: int,
                     processed_at: Optional[str],
-                    last_attempt_at: str,
-                    attempt_count: int) -> bool:
+                    last_processing_attempt_at: str,
+                    processing_attempt_count: int) -> bool:
         """
         Checks if file status is valid or not.
         creates the file details to a row in the table
@@ -80,9 +90,12 @@ class ProcessedFileRepository:
         :param processed_file_size: processed file size in bytes
         :param status: file processing status
         :param error_message: error thrown as a result of failed file processing 
-        :param processed_at: timestamp at which file processing was completed
-        :param last_attempt_at: timestamp at which latest processing attempt was made.
-        :param attempt_count: number of tries for processing the file
+        :param downloaded_at: UTC timestamp when file downloaded.
+        :param last_downloading_attempt_at: UTC timestamp of the most recent downloading attempt.
+        :param downloading_attempt_count: Number of downloading attempts made.
+        :param processed_at: UTC timestamp when processing completed.
+        :param last_processing_attempt_at: UTC timestamp of the most recent processing attempt.
+        :param processing_attempt_count: Number of processing attempts made.
         :return: Returns True only if the number of created rows is 1
         """
         
@@ -102,10 +115,13 @@ class ProcessedFileRepository:
                 processed_file_size,
                 status,
                 error_message,
+                downloaded_at,
+                last_downloading_attempt_at,
+                downloading_attempt_count,
                 processed_at,
-                last_attempt_at,
-                attempt_count)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                last_processing_attempt_at,
+                processing_attempt_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             operation=OperationType.WRITE,
             params=(
@@ -119,9 +135,12 @@ class ProcessedFileRepository:
                     processed_file_size,
                     status.value,
                     error_message,
+                    downloaded_at,
+                    last_downloading_attempt_at,
+                    downloading_attempt_count,
                     processed_at,
-                    last_attempt_at,
-                    attempt_count
+                    last_processing_attempt_at,
+                    processing_attempt_count
                 )
         )
         
@@ -131,7 +150,7 @@ class ProcessedFileRepository:
     
     def read_file(self, raw_file_hash: str) -> Optional[ProcessedFile]:
         """
-        Fetch processed file record
+        Fetch processed file record using raw file hash value
 
         :param raw_file_hash: Computed hash value of raw file, primary key
         :return : returns complete file processing data
@@ -154,42 +173,6 @@ class ProcessedFileRepository:
             return None
 
         return ProcessedFile.from_row(result.data)
-    
-    def update_status(self, file: ProcessedFile) -> bool:
-        """
-        Updates file processing status using the domain object
-
-        :param file: ProcessedFile domain object
-        :return: True only if exactly one row was updated
-        """
-
-        if not isinstance(file.status, FileStatus):
-            raise ValueError("status must be FileStatus enum")
-
-        spec = QuerySpec(
-            sql=f"""
-                UPDATE {self.table_name}
-                SET status = ?,
-                    error_message = ?,
-                    processed_at = ?,
-                    last_attempt_at = ?,
-                    attempt_count = ?
-                WHERE raw_file_hash = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(
-                file.status.value,
-                file.error_message,
-                file.processed_at,
-                file.last_attempt_at,
-                file.attempt_count,
-                file.raw_file_hash
-            )
-        )
-
-        result = self._executor.execute(spec)
-
-        return result.rows_affected == 1
 
     def delete_file(self, file: ProcessedFile) -> bool:
         """
@@ -212,89 +195,45 @@ class ProcessedFileRepository:
 
         return result.rows_affected == 1
     
-    def claim_next_file(self) -> Optional[ProcessedFile]:
+    def save(self, file: ProcessedFile) -> bool:
         """
-        Claims next file for processing.
-        Updates last_attempt_at and increments attempt_count.
-        """
+        Persists latest state of a processed file domain entity.
 
-        spec = QuerySpec(
-            sql=f"""
-                UPDATE {self.table_name}
-                SET last_attempt_at = datetime('now'),
-                    attempt_count = attempt_count + 1
-                WHERE raw_file_hash = (
-                    SELECT raw_file_hash
-                    FROM {self.table_name}
-                    WHERE status IN (?, ?)
-                    ORDER BY last_attempt_at ASC
-                    LIMIT 1
-                )
-                RETURNING *
-            """,
-            operation=OperationType.READ,
-            params=(FileStatus.PENDING.value,),
-            fetch=FetchType.ONE
-        )
-
-        result = self._executor.execute(spec)
-
-        if result.data is None:
-            return None
-
-        return ProcessedFile.from_row(result.data)
-
-    def increment_attempt(self, file: ProcessedFile) -> bool:
-        """
-        Increment attempt counter and update attempt timestamp.
-
-        :param file: ProcessedFile domain object
-        :return : Returns true if successful
-        """
-
-        spec = QuerySpec(
-            sql=f"""
-                UPDATE {self.table_name}
-                SET attempt_count = attempt_count + 1,
-                    last_attempt_at = datetime('now')
-                WHERE raw_file_hash = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(file.raw_file_hash,)
-        )
-
-        result = self._executor.execute(spec)
-
-        return result.rows_affected == 1
-
-    def mark_success(self, file: ProcessedFile) -> bool:
-        """
-        Marks a file as successfully processed.
-
-        :param file: ProcessedFile domain entity
-        :return: True only if exactly one row was updated
+        :param file: Domain object containing latest state.
+        :return: True if exactly one row updated.
         """
 
         spec = QuerySpec(
             sql=f"""
                 UPDATE {self.table_name}
                 SET status = ?,
+                    error_message = ?,
+                    downloaded_at = ?,
+                    last_downloading_attempt_at = ?,
+                    downloading_attempt_count = ?,
                     processed_file_hash = ?,
                     processed_file_name = ?,
                     processed_file_path = ?,
                     processed_file_size = ?,
                     processed_at = ?,
-                    error_message = NULL
+                    last_processing_attempt_at = ?,
+                    processing_attempt_count = ?
                 WHERE raw_file_hash = ?
             """,
             operation=OperationType.WRITE,
             params=(
-                FileStatus.SUCCESS.value,
+                file.status.value,
+                file.error_message,
+                file.downloaded_at,
+                file.last_downloading_attempt_at,
+                file.downloading_attempt_count,
                 file.processed_file_hash,
                 file.processed_file_name,
                 file.processed_file_path,
                 file.processed_file_size,
                 file.processed_at,
+                file.last_processing_attempt_at,
+                file.processing_attempt_count,
                 file.raw_file_hash
             )
         )
@@ -303,9 +242,33 @@ class ProcessedFileRepository:
 
         return result.rows_affected == 1
 
-    def get_failed_files(self) -> list[ProcessedFile]:
+    def exists(self, raw_file_hash: str) -> bool:
         """
-        Fetch all failed files.
+        Checks if a processed file record exists.
+
+        :param raw_file_hash: Raw file identity.
+        :return: True if record exists.
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT 1
+                FROM {self.table_name}
+                WHERE raw_file_hash = ?
+            """,
+            operation=OperationType.READ,
+            params=(raw_file_hash,),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(spec)
+
+        return result.data is not None
+
+    def claim_next_ready(self) -> Optional[ProcessedFile]:
+        """
+        Claims next READY file for processing.
+        :return: Next file to process or None.
         """
 
         spec = QuerySpec(
@@ -313,34 +276,41 @@ class ProcessedFileRepository:
                 SELECT *
                 FROM {self.table_name}
                 WHERE status = ?
-                ORDER BY last_attempt_at ASC
+                ORDER BY last_processing_attempt_at ASC
+                LIMIT 1
             """,
             operation=OperationType.READ,
-            params=(FileStatus.FAILED.value,),
-            fetch=FetchType.ALL
+            params=(FileStatus.READY.value,),
+            fetch=FetchType.ONE
         )
 
         result = self._executor.execute(spec)
 
         if not result.data:
-            return []
+            return None
 
-        return [ProcessedFile.from_row(row) for row in result.data]
+        return ProcessedFile.from_row(result.data)
 
-    def list_unprocessed_files(self) -> list[ProcessedFile]:
+    def get_retryable_processing(self) -> list[ProcessedFile]:
         """
-        Lists files that still need processing.
+        Fetch files eligible for processing retry.
+
+        :return: Retryable files.
         """
 
         spec = QuerySpec(
             sql=f"""
                 SELECT *
                 FROM {self.table_name}
-                WHERE status IN (?, ?)
-                ORDER BY last_attempt_at ASC
+                WHERE status = ?
+                AND processing_attempt_count < ?
+                ORDER BY last_processing_attempt_at ASC
             """,
             operation=OperationType.READ,
-            params=(FileStatus.PENDING.value),
+            params=(
+                FileStatus.PROCESSING_FAILED.value,
+                self.max_processing_attempts
+            ),
             fetch=FetchType.ALL
         )
 
@@ -349,4 +319,40 @@ class ProcessedFileRepository:
         if not result.data:
             return []
 
-        return [ProcessedFile.from_row(row) for row in result.data]
+        return [
+            ProcessedFile.from_row(row)
+            for row in result.data
+        ]
+    
+    def get_retryable_downloads(self) -> list[ProcessedFile]:
+        """
+        Fetch files eligible for download retry.
+
+        :return: Retryable files.
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE status = ?
+                AND downloading_attempt_count < ?
+                ORDER BY last_downloading_attempt_at ASC
+            """,
+            operation=OperationType.READ,
+            params=(
+                FileStatus.DOWNLOADING_FAILED.value,
+                self.max_downloading_attempts
+            ),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [
+            ProcessedFile.from_row(row)
+            for row in result.data
+        ]
