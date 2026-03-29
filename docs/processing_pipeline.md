@@ -6,7 +6,7 @@ Explaining the file lifecycle
     - DISCOVERED : raw file is available in the NASA opendirectory
     - DOWNLOADING : file downloading to local has begun
     - DOWNLOADED : file successfully downloaded to local
-    - DOWNLOAD_FAILED : file failed to download successfully
+    - DOWNLOADING_FAILED : file failed to download successfully
     - IGNORE : file to be ignored for downloading, maximum retries reached for downloading it
     - SKIPPED : file which are not eligible for processing; based on metadata or outdated timestamp
     - READY : files eligible for processing (`PROCESSING_FAILED` files also come here)  
@@ -24,10 +24,11 @@ Explaining the file lifecycle
 3. Transitions [ how the state transition will take place ]
     - DISCOVERED &#10145; DOWNLOADING
     - DISCOVERED &#10145; DOWNLOADED
-    - DOWNLOADING &#10145; DOWNLOAD_FAILED
+    - DOWNLOADING &#10145; DOWNLOADING_FAILED
     - DOWNLOADING &#10145; DOWNLOADED
-    - DOWNLOAD_FAILED &#10145; DOWNLOADING  
-    - DOWNLOAD_FAILED &#10145; IGNORE
+    - DOWNLOADING_FAILED &#10145; DOWNLOADING  
+    - DOWNLOADING_FAILED &#10145; IGNORE
+    - DOWNLOADED &#10145; DOWNLOADING_FAILED
     - DOWNLOADED &#10145; SKIPPED
     - DOWNLOADED &#10145; READY  
     - READY &#10145; PROCESSING
@@ -35,6 +36,7 @@ Explaining the file lifecycle
     - PROCESSING &#10145; PROCESSED
     - PROCESSING_FAILED &#10145; READY
     - PROCESSING_FAILED &#10145; ABANDONED
+    - PROCESSED &#10145; PROCESSING_FAILED
 
 4. Transition Conditions
     - DOWNLOADED &#10145; READY  
@@ -48,7 +50,7 @@ Explaining the file lifecycle
     DISCOVERED &#10145; DOWNLOADING &#10145; DOWNLOADED &#10145; READY &#10145; PROCESSING &#10145; PROCESSED  
 
     - Failure1 workflow [ file failed to be downloaded ]  
-    DISCOVERED &#10145; DOWNLOADING &#10145; DOWNLOAD_FAILED &#10145; max_limit[ DOWNLOADING &#10145; DOWNLOAD_FAILED ] &#10145; IGNORE
+    DISCOVERED &#10145; DOWNLOADING &#10145; DOWNLOADING_FAILED &#10145; max_limit[ DOWNLOADING &#10145; DOWNLOADING_FAILED ] &#10145; IGNORE
     
     - Failure2 workflow [ file skipped for processing ]  
     DISCOVERED &#10145; DOWNLOADING &#10145; DOWNLOADED &#10145; SKIPPED  
@@ -57,13 +59,13 @@ Explaining the file lifecycle
     DISCOVERED &#10145; DOWNLOADING &#10145; DOWNLOADED &#10145; READY &#10145; PROCESSING &#10145; PROCESSING_FAILED &#10145; max_limit[ PROCESSING &#10145; PROCESSING_FAILED ] &#10145; ABANDONED  
     
     - Failure4 workflow [ file failed to download due to timeout ]  
-    DISCOVERED &#10145; DOWNLOADING &#10145; `timeout` &#10145; DOWNLOAD_FAILED...  
+    DISCOVERED &#10145; DOWNLOADING &#10145; `timeout` &#10145; DOWNLOADING_FAILED...  
     
     - Failure5 workflow [ file failed to process due to timeout ]  
     DISCOVERED &#10145; DOWNLOADING &#10145; DOWNLOADED &#10145; READY &#10145; PROCESSING &#10145; `timeout` &#10145; PROCESSING_FAILED...   
     
     - Failure6 workflow [ worker crash during download ]  
-    DISCOVERED &#10145; DOWNLOADING &#10145; `system crash` &#10145; `timeout recovery` &#10145; DOWNLOAD_FAILED...  
+    DISCOVERED &#10145; DOWNLOADING &#10145; `system crash` &#10145; `timeout recovery` &#10145; DOWNLOADING_FAILED...  
     
     - Failure7 workflow [ worker crash during processing ]
     DISCOVERED &#10145; DOWNLOADING &#10145; DOWNLOADED &#10145; READY &#10145; PROCESSING &#10145; `system crash` &#10145;  `timeout recovery` &#10145; PROCESSING_FAILED...  
@@ -78,7 +80,7 @@ Explaining the file lifecycle
 6. Failure recovery
     - Download recovery  
     
-    `DOWNLOADING` AND `now - download_started_at > download_timeout` AND `download_attempts < max_download_attempts` &#10145; `DOWNLOAD_FAILED`  
+    `DOWNLOADING` AND `now - download_started_at > download_timeout` AND `download_attempts < max_download_attempts` &#10145; `DOWNLOADING_FAILED`  
 
     `DOWNLOADING` AND `now - download_started_at > download_timeout` AND `download_attempts >= max_download_attempts` &#10145; `IGNORE`  
 
@@ -90,13 +92,18 @@ Explaining the file lifecycle
 
     - Corruption validation  
     
-    `DOWNLOADED` &#10145; `DOWNLOAD_FAILED`  
-    When file validation fails. File validation metrics could be filesize, invalid format, failure to read etc.  
+    `DOWNLOADED` &#10145; `DOWNLOADING_FAILED`  
+    
+    `PROCESSED` &#10145; `PROCESSING_FAILED`  
+    
+    When file validation fails. File validation metrics could be filesize, invalid format, failure to read etc.
+
+
     
 7. Retry policy  
     
     - Download  
-    Retry when `DOWNLOAD_FAILED`  
+    Retry when `DOWNLOADING_FAILED`  
     download_attempts < max_download_attempts  
     Retry occurs immediately  
     download_attempts incremented when download attempt begins    
