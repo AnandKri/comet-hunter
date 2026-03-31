@@ -331,22 +331,26 @@ class FileMetadataRepository:
         spec = QuerySpec(
             sql=f"""
                 INSERT OR IGNORE INTO {self.table_name} (
-                    file_name,
-                    file_hash,
-                    file_size,
-                    file_timestamp,
-                    source_url
+                    raw_file_name,
+                    datetime_of_observation,
+                    instrument,
+                    exposure_time,
+                    width,
+                    height,
+                    roll
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             operation=OperationType.WRITE,
             params=[
                 (
-                    file.file_name,
-                    file.file_hash,
-                    file.file_size,
-                    file.file_timestamp,
-                    file.source_url
+                    file.raw_file_name,
+                    file.datetime_of_observation,
+                    file.instrument,
+                    file.exposure_time,
+                    file.width,
+                    file.height,
+                    file.roll
                 )
                 for file in files
             ]
