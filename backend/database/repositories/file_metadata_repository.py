@@ -313,7 +313,49 @@ class FileMetadataRepository:
         
         return FileMetadata.from_row(result.data)
     
-    
+    def bulk_create_metadata(self, files: list[FileMetadata]) -> int:
+        """
+        Inserts multiple file metadata records in a single batch operation.
+
+        This method is intended for high-throughput discovery workflows where
+        metadata for many files is parsed together and persisted efficiently.
+        Duplicate records (based on primary/unique constraints) are ignored.
+
+        :param files: List of FileMetadata domain entities to insert.
+        :return: Number of rows successfully inserted.
+        """
+
+        if not files:
+            return 0
+
+        spec = QuerySpec(
+            sql=f"""
+                INSERT OR IGNORE INTO {self.table_name} (
+                    file_name,
+                    file_hash,
+                    file_size,
+                    file_timestamp,
+                    source_url
+                )
+                VALUES (?, ?, ?, ?, ?)
+            """,
+            operation=OperationType.WRITE,
+            params=[
+                (
+                    file.file_name,
+                    file.file_hash,
+                    file.file_size,
+                    file.file_timestamp,
+                    file.source_url
+                )
+                for file in files
+            ]
+        )
+
+        result = self._executor.execute_many(spec)
+
+        return result.rows_affected
+
     # def bulk_create_metadata(self, files: list[FileMetadata]) -> int:
     # def get_by_names(self, raw_file_names: list[str]) -> list[FileMetadata]:
     # def get_recent_files(self, limit: int, instrument: str) -> list[FileMetadata]:

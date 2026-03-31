@@ -15,3 +15,4 @@ class Url:
     """
     SCHEDULE = "https://soho.nascom.nasa.gov/operations/schedule/schedule.html"
     FTS_IMAGES_YYMMDD = "https://umbra.nascom.nasa.gov/pub/lasco/lastimage/level_05/"
+    METADATA = ""
