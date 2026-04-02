@@ -291,7 +291,7 @@ class ProcessedFileRepository:
 
         return ProcessedFile.from_row(result.data)
 
-    def get_retryable_processing(self) -> list[ProcessedFile]:
+    def get_retryable_process(self) -> list[ProcessedFile]:
         """
         Fetch files eligible for processing retry.
 
@@ -324,7 +324,7 @@ class ProcessedFileRepository:
             for row in result.data
         ]
     
-    def get_retryable_downloads(self) -> list[ProcessedFile]:
+    def get_retryable_download(self) -> list[ProcessedFile]:
         """
         Fetch files eligible for download retry.
 
@@ -356,3 +356,29 @@ class ProcessedFileRepository:
             ProcessedFile.from_row(row)
             for row in result.data
         ]
+    
+    def get_ready_files(self) -> list[ProcessedFile]:
+        """
+        Fetch files ready for processing
+
+        :return: list of files in `READY` state
+        """
+
+        spec = QuerySpec(
+            sql = f"""
+                    SELECT *
+                    FROM {self.table_name}
+                    WHERE status = ?
+                    ORDER BY last_processing_attempt_at ASC
+                """,
+            operation=OperationType.READ,
+            params=(FileStatus.READY.value,),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [ProcessedFile.from_row(r) for r in result.data]

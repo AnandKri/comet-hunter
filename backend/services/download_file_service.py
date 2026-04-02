@@ -44,7 +44,7 @@ class DownloadFileService:
         :return: Files needing download
         """
 
-        retryable = self._processed_repository.get_retryable_downloads()
+        retryable = self._processed_repository.get_retryable_download()
 
         # add repo method to get list of files need to be downloaded
 
@@ -77,7 +77,7 @@ class DownloadFileService:
         Downloads one file and updates lifecycle
 
         :param file: File to be downloaded
-        :return: Ture if file is successfully downloaded. False otherwise
+        :return: True if file is successfully downloaded. False otherwise
         """
 
         try:
