@@ -43,3 +43,9 @@ class DownlinkSlot:
             ant=row["ant"],
             status=SlotStatus(row["status"])
         )
+    
+    def identity(self) -> tuple:
+        """
+        Natural identity of slot.
+        """
+        return (self.wk, self.doy, self.wdy, self.bot_utc)

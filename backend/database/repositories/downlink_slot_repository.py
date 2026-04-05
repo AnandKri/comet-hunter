@@ -48,23 +48,16 @@ class DownlinkSlotRepository:
             ON {cls.table_name} (status, bot_utc)
         """
     
-    def create_slot(self, wk: int, doy: int, wdy: str, bot_utc: str, eot_utc: str, 
-                    ant: Optional[str], status: SlotStatus) -> bool:
+    def create_slot(self, slot: DownlinkSlot) -> bool:
         """
         Checks if slot status is valid or not.
         Creates the slot details to a row in the table. 
         
-        :param wk: Week number of the year
-        :param doy: Day number of the year
-        :param wdy: Weekday name
-        :param bot_utc: Beginning of track, date and time
-        :param eot_utc: End of track, date and time
-        :param ant: Respective antenna for downlink
-        :param status: Status of the slot
-        :return: Returns True only if the number of created rows is 1
+        :param slot: DownlinkSlot domain object
+        :return: True only if the number of created rows is 1
         """
         
-        if not isinstance(status, SlotStatus):
+        if not isinstance(slot.status, SlotStatus):
             raise ValueError("status must be SlotStatus enum")
         
         spec = QuerySpec(
@@ -74,7 +67,7 @@ class DownlinkSlotRepository:
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
             operation=OperationType.WRITE,
-            params=(wk, doy, wdy, bot_utc, eot_utc, ant, status.value)
+            params=(slot.wk, slot.doy, slot.wdy, slot.bot_utc, slot.eot_utc, slot.ant, slot.status.value)
         )
 
         result = self._executor.execute(spec)
@@ -241,3 +234,32 @@ class DownlinkSlotRepository:
         result = self._executor.execute(spec)
 
         return result.rows_affected
+    
+    def exists(self, identity: tuple) -> bool:
+        """
+        Checks if slot exists in the DB or not
+
+        :param identity: Natural identity of a slot
+        :return: True if slot exists. False Otherwise
+        """
+
+        wk, doy, wdy, bot_utc = identity
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT 1
+                FROM {self.table_name}
+                WHERE wk = ?
+                AND doy = ?
+                AND wdy = ?
+                AND bot_utc = ?
+                LIMIT 1
+            """,
+            operation=OperationType.READ,
+            params=(wk, doy, wdy, bot_utc),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(spec)
+
+        return result.data is not None
