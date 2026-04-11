@@ -131,4 +131,37 @@ class SlotService:
         :return: returns DownlinkSlot domain entity of active slot if present
         """
 
-        return self._slot_repository.get_current_active_slot()
+        return self._slot_repository.get_active_slot()
+    
+    def sync_and_get_active_slot(self) -> Optional[DownlinkSlot]:
+        """
+        Performs slot lifecycle synchronization and optionally returns 
+        active slot if any.
+
+        Steps:
+        1. Marks expired PENDING slots as MISSED
+        2. Returns existing ACTIVE slot if present
+        3. Otherwise claims next eligible PENDING slot as ACTIVE
+
+        This method is intended to be called during system initialization
+        or scheduling cycles.
+
+        :return: Active DownlinkSlot if available, else None
+        """
+
+        now = datetime.now(UTC).isoformat()
+
+        self._slot_repository.mark_expired_active_as_missed(now)
+        self._slot_repository.mark_expired_pending_as_missed(now)
+
+        active = self._slot_repository.get_active_slot()
+        if active:
+            return active
+
+        slot = self._slot_repository.get_next_claimable_slot(now)
+        if not slot:
+            return None
+
+        slot = self._slot_repository.update_status(SlotStatus.ACTIVE, slot)
+
+        return slot

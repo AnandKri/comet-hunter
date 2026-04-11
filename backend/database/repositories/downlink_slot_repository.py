@@ -74,56 +74,97 @@ class DownlinkSlotRepository:
 
         return result.rows_affected == 1
     
-    def get_current_active_slot(self) -> Optional[DownlinkSlot]:
+    def mark_expired_pending_as_missed(self, now: str) -> int:
         """
-        1. Marks expired slots as `MISSED` (Mandatory Step)
-        2. Gets `ACTIVE` slot if present
-        3. If `ACTIVE` slot is not present then
-        Gets logically Active slots and Updates its status 
-        from `PENDING` to `ACTIVE`
-        :return: Returns complete slot information
-        """
-        now = datetime.now(UTC).isoformat()
+        Marks all expired PENDING slots as MISSED.
 
-        cleanup = QuerySpec(
+        A slot is considered expired if its `eot_utc` is earlier than the
+        provided timestamp. Only slots in PENDING state are transitioned,
+        ensuring that ACTIVE and DONE slots are not affected.
+
+        This method is typically invoked during synchronization or scheduler
+        initialization to clean up stale, unclaimed slots.
+
+        The comparison relies on ISO 8601 UTC string ordering, so `now` must
+        be provided in ISO format (e.g. "2026-04-11T12:00:00+00:00").
+
+        :param now: Current timestamp (UTC, ISO format) used as cutoff.
+        :return: Number of rows updated (slots marked as MISSED).
+        """
+
+        spec = QuerySpec(
             sql=f"""
                 UPDATE {self.table_name}
                 SET status = ?
                 WHERE eot_utc < ?
                 AND status = ?
-                """,
+            """,
             operation=OperationType.WRITE,
-            params=(SlotStatus.MISSED.value,
-                    now,
-                    SlotStatus.PENDING.value)
-        )
-        _ = self._executor.execute(cleanup)
-
-        active_spec = QuerySpec(
-            sql = f"""
-                SELECT *
-                FROM {self.table_name}
-                WHERE status = ?
-                AND bot_utc <= ?
-                AND eot_utc >= ?
-                LIMIT 1
-                """,
-            operation=OperationType.READ,
             params=(
-                SlotStatus.ACTIVE.value,
+                SlotStatus.MISSED.value,
                 now,
-                now
-            ),
-            fetch=FetchType.ONE
+                SlotStatus.PENDING.value
+            )
         )
 
-        result = self._executor.execute(active_spec)
+        result = self._executor.execute(spec)
 
-        if result.data:
-            return DownlinkSlot.from_row(result.data)
-        
-        claim_spec = QuerySpec(
-            sql = f"""
+        return result.rows_affected
+    
+    def mark_expired_active_as_missed(self, now: str) -> int:
+        """
+        Mark all expired ACTIVE slots as MISSED.
+
+        A slot is considered expired if its `eot_utc` is earlier than the provided
+        timestamp. Only slots currently in ACTIVE state are transitioned to MISSED.
+        This is typically used during system startup or synchronization to recover
+        from crashes or incomplete lifecycle transitions.
+
+        This ensures that stale ACTIVE slots (which were not marked DONE due to
+        interruptions) do not remain indefinitely ACTIVE.
+
+        :param now: Current timestamp in ISO UTC format.
+        :return: Number of slots updated.
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                UPDATE {self.table_name}
+                SET status = ?
+                WHERE eot_utc < ?
+                AND status = ?
+            """,
+            operation=OperationType.WRITE,
+            params=(
+                SlotStatus.MISSED.value,
+                now,
+                SlotStatus.ACTIVE.value
+            )
+        )
+
+        result = self._executor.execute(spec)
+
+        return result.rows_affected
+
+    def get_next_claimable_slot(self, now: str) -> Optional[DownlinkSlot]:
+        """
+        Fetch the next eligible PENDING slot that can be activated.
+
+        A slot is considered claimable if:
+        - its status is PENDING
+        - its time window includes the current timestamp (`bot_utc <= now <= eot_utc`)
+
+        Among all eligible slots, the earliest slot (based on `bot_utc`) is selected
+        to ensure deterministic and sequential processing.
+
+        This method performs a read-only operation and does not mutate state.
+
+        :param now: Current timestamp in ISO UTC format.
+        :return: Next claimable DownlinkSlot if available, else None.
+        """
+
+        spec = QuerySpec(
+            sql=f"""
                 SELECT *
                 FROM {self.table_name}
                 WHERE status = ?
@@ -131,24 +172,22 @@ class DownlinkSlotRepository:
                 AND eot_utc >= ?
                 ORDER BY bot_utc ASC
                 LIMIT 1
-                """,
+            """,
             operation=OperationType.READ,
-            params=(SlotStatus.PENDING.value,
-                    now,
-                    now),
+            params=(
+                SlotStatus.PENDING.value,
+                now,
+                now
+            ),
             fetch=FetchType.ONE
         )
 
-        result = self._executor.execute(claim_spec)
+        result = self._executor.execute(spec)
 
-        if result.data is None:
+        if not result.data:
             return None
-        
-        claimed_slot = DownlinkSlot.from_row(result.data)
 
-        claimed_slot = self.update_status(newStatus = SlotStatus.ACTIVE, slot = claimed_slot)
-
-        return claimed_slot
+        return DownlinkSlot.from_row(result.data)
         
     def update_status(self, newStatus: SlotStatus, slot: DownlinkSlot) -> Optional[DownlinkSlot]:
         """
@@ -186,7 +225,7 @@ class DownlinkSlotRepository:
     
     def delete_slot(self, slot: DownlinkSlot) -> bool:
         """
-        Deletes a `DONE` or `MISSED` slot based on its domain identity
+        Deletes a slot
         :param slot: Slot whose identity is used for lookup
         :return: True only if exactly one row was delete
         """
@@ -198,15 +237,12 @@ class DownlinkSlotRepository:
                 AND doy = ?
                 AND wdy = ?
                 AND bot_utc = ?
-                AND status IN (?, ?)
                 """,
             operation=OperationType.WRITE,
             params=(slot.wk,
                     slot.doy,
                     slot.wdy,
-                    slot.bot_utc,
-                    SlotStatus.DONE.value,
-                    SlotStatus.MISSED.value)
+                    slot.bot_utc)
         )
         
         result = self._executor.execute(spec)
@@ -263,7 +299,7 @@ class DownlinkSlotRepository:
 
         return result.data is not None
     
-    def get_recent_slots(self, since: str) -> list[DownlinkSlot]:
+    def get_recent_slots(self, since: str, now: str) -> list[DownlinkSlot]:
         """
         Fetch slots overlapping the time window [since, now], excluding future
         or not-yet-activated (PENDING) slots.
@@ -276,10 +312,16 @@ class DownlinkSlotRepository:
         so `since` must be in ISO format (e.g. "2026-04-11T12:00:00+00:00").
 
         :param since: Lower bound timestamp (inclusive) in ISO UTC format.
+        :param now: upper bound timestamp (inclusive) in ISO UTC format. 
+        expected to be current timestamp, but could be anything
         :return: List of DownlinkSlot domain entities ordered by `bot_utc`.
         """
 
-        now = datetime.now(UTC).isoformat()
+        since_dt = datetime.fromisoformat(since)
+        now_dt = datetime.fromisoformat(now)
+
+        if since_dt >= now_dt:
+            raise ValueError("`since` must be earlier than `now`")
 
         spec = QuerySpec(
             sql=f"""
@@ -307,3 +349,32 @@ class DownlinkSlotRepository:
             return []
 
         return [DownlinkSlot.from_row(row) for row in result.data]
+    
+    def get_active_slot(self) -> Optional[DownlinkSlot]:
+        """
+        Fetch latest ACTIVE slot if present.
+
+        No state mutation is performed. This method is a pure read.
+
+        :return: Active DownlinkSlot if exists, else None.
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE status = ?
+                ORDER BY bot_utc DESC
+                LIMIT 1
+            """,
+            operation=OperationType.READ,
+            params=(SlotStatus.ACTIVE.value,),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return None
+
+        return DownlinkSlot.from_row(result.data)
