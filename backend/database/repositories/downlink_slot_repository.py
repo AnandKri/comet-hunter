@@ -90,13 +90,12 @@ class DownlinkSlotRepository:
                 UPDATE {self.table_name}
                 SET status = ?
                 WHERE eot_utc < ?
-                AND status IN (?, ?)
+                AND status = ?
                 """,
             operation=OperationType.WRITE,
             params=(SlotStatus.MISSED.value,
                     now,
-                    SlotStatus.PENDING.value,
-                    SlotStatus.ACTIVE.value)
+                    SlotStatus.PENDING.value)
         )
         _ = self._executor.execute(cleanup)
 
@@ -216,19 +215,18 @@ class DownlinkSlotRepository:
     
     def delete_completed_slots(self) -> int:
         """
-        Deletes all slots whose status is `DONE` or `MISSED`.
+        Deletes all slots whose status is `DONE`.
         :return: Number of rows deleted
         """
 
         spec = QuerySpec(
             sql=f"""
                 DELETE FROM {self.table_name}
-                WHERE status IN (?, ?)
+                WHERE status = ?
             """,
             operation=OperationType.WRITE,
             params=(
-                SlotStatus.DONE.value,
-                SlotStatus.MISSED.value
+                SlotStatus.DONE.value
             )
         )
 
@@ -264,3 +262,48 @@ class DownlinkSlotRepository:
         result = self._executor.execute(spec)
 
         return result.data is not None
+    
+    def get_recent_slots(self, since: str) -> list[DownlinkSlot]:
+        """
+        Fetch slots overlapping the time window [since, now], excluding future
+        or not-yet-activated (PENDING) slots.
+
+        This method returns slots whose time window intersects with the given
+        interval and are already ACTIVE, DONE, or MISSED. It avoids returning
+        future scheduled (PENDING) slots.
+
+        The comparison is performed lexicographically on ISO 8601 UTC strings,
+        so `since` must be in ISO format (e.g. "2026-04-11T12:00:00+00:00").
+
+        :param since: Lower bound timestamp (inclusive) in ISO UTC format.
+        :return: List of DownlinkSlot domain entities ordered by `bot_utc`.
+        """
+
+        now = datetime.now(UTC).isoformat()
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE bot_utc <= ?
+                AND eot_utc >= ?
+                AND status IN (?, ?, ?)
+                ORDER BY bot_utc ASC
+            """,
+            operation=OperationType.READ,
+            params=(
+                now,
+                since,
+                SlotStatus.ACTIVE.value,
+                SlotStatus.DONE.value,
+                SlotStatus.MISSED.value
+            ),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [DownlinkSlot.from_row(row) for row in result.data]
