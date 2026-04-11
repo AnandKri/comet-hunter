@@ -2,9 +2,6 @@ import sqlite3
 from backend.util.constants import DB
 from pathlib import Path
 from typing import ClassVar, Optional
-# from backend.database.repositories.downlink_slot_repository import DownlinkSlotRepository
-# from backend.database.repositories.file_metadata_repository import FileMetadataRepository
-# from backend.database.repositories.processed_file_repository import ProcessedFileRepository
 
 class DatabaseBase:
     """
