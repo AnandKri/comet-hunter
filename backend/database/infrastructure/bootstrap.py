@@ -1,7 +1,7 @@
 from backend.database.infrastructure.base import DatabaseBase
-from repositories.downlink_slot_repository import DownlinkSlotRepository
-from repositories.file_metadata_repository import FileMetadataRepository
-from repositories.processed_file_repository import ProcessedFileRepository
+from backend.database.repositories.downlink_slot_repository import DownlinkSlotRepository
+from backend.database.repositories.file_metadata_repository import FileMetadataRepository
+from backend.database.repositories.processed_file_repository import ProcessedFileRepository
 
 def bootstrap_database():
     DatabaseBase.initialize_database()
@@ -12,4 +12,5 @@ def bootstrap_database():
         conn.execute(ProcessedFileRepository.create_table_sql())
         conn.execute(ProcessedFileRepository.create_indexes_sql())
         conn.execute(FileMetadataRepository.create_table_sql())
-        conn.execute(FileMetadataRepository.create_indexes_sql())
+        for sql in FileMetadataRepository.create_indexes_sql():
+            conn.execute(sql)

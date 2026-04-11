@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from util.enums import SlotStatus
+from backend.util.enums import SlotStatus
 
 @dataclass(frozen=True)
 class DownlinkSlot:

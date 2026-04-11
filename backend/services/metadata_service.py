@@ -2,7 +2,7 @@ from typing import List
 import requests
 from backend.database.repositories.file_metadata_repository import FileMetadataRepository
 from backend.database.domain.file_metadata import FileMetadata
-from util.constants import Url
+from backend.util.constants import Url
 
 class MetadataService:
     """

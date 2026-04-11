@@ -8,4 +8,7 @@ class DatabaseExecutionError(Exception):
     - Connection issues
     - Unexpected SQLite exceptions
     """
-    pass
+    def __init__(self, message: str, query: str = None, params=None):
+        super().__init__(message)
+        self.query = query
+        self.params = params

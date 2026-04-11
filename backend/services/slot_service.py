@@ -35,7 +35,7 @@ class SlotService:
         inserted = 0
 
         for slot in slots:
-            if not self._slot_repository.exists(slot.identity()):
+            if not self._slot_repository.exists(identity=slot.identity()):
                 if self._slot_repository.create_slot(slot):
                     inserted += 1
         
@@ -93,8 +93,8 @@ class SlotService:
                 if eot_dt < bot_dt:
                     eot_dt += timedelta(days=1)
 
-                bot_utc = bot_dt.replace(tzinfo=UTC)
-                eot_utc = eot_dt.replace(tzinfo=UTC)
+                bot_utc = bot_dt.replace(tzinfo=UTC).isoformat()
+                eot_utc = eot_dt.replace(tzinfo=UTC).isoformat()
 
                 slot = DownlinkSlot(
                     wk=wk,

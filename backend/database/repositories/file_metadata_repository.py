@@ -36,18 +36,19 @@ class FileMetadataRepository:
         """
     
     @classmethod
-    def create_indexes_sql(cls) -> str:
+    def create_indexes_sql(cls) -> list[str]:
         """
         Query to create index for `file_metadata` table
         for faster accessbility.
         """
-        return f"""
+        return [f"""
             CREATE INDEX IF NOT EXISTS idx_file_metadata_time
             ON {cls.table_name} (instrument, datetime_of_observation)
-
-            CREATE INDEX IF NOT EXISTS idx_file_metadata_hash
+            """,
+            f"""CREATE INDEX IF NOT EXISTS idx_file_metadata_hash
             ON {cls.table_name} (raw_file_hash)
-        """
+            """
+        ]
     
     def create_metadata(self, 
                         raw_file_name: str, 

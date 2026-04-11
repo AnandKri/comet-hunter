@@ -1,9 +1,9 @@
-from query_spec import QuerySpec
-from query_result import QueryResult
-from base import DatabaseBase
+from backend.database.infrastructure.query_spec import QuerySpec
+from backend.database.infrastructure.query_result import QueryResult
+from backend.database.infrastructure.base import DatabaseBase
 from backend.util.enums import FetchType, OperationType
 import logging
-from execeptions import DatabaseExecutionError
+from backend.database.infrastructure.exceptions import DatabaseExecutionError
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,6 @@ class QueryExecutor:
 
             with DatabaseBase.get_connection() as conn:
                 cursor = conn.execute(query.sql, query.params)
-
                 if query.operation is OperationType.READ:
                     if query.fetch is FetchType.ONE:
                         row = cursor.fetchone()
@@ -48,9 +47,38 @@ class QueryExecutor:
                             data=rows
                         )
                 else:
+                    conn.commit()
                     return QueryResult(
-                        affected_rows=cursor.rowcount
+                        rows_affected=cursor.rowcount
                     )
         except Exception as e:
             logger.exception("Database query failed")
-            raise DatabaseExecutionError(str(e)) from e
+            raise DatabaseExecutionError(
+                str(e),
+                query=query.sql,
+                params=query.params
+            ) from e
+    
+    def execute_many(self, query: QuerySpec) -> QueryResult:
+        try:
+            sql_upper = query.sql.strip().upper()
+
+            if query.operation is not OperationType.WRITE:
+                raise ValueError("execute_many only supports WRITE operations.")
+
+            with DatabaseBase.get_connection() as conn:
+                cursor = conn.executemany(query.sql, query.params)
+
+                conn.commit()
+
+                return QueryResult(
+                    rows_affected=cursor.rowcount
+                )
+
+        except Exception as e:
+            logger.exception("Database batch query failed")
+            raise DatabaseExecutionError(
+                str(e),
+                query=query.sql,
+                params=query.params
+            ) from e

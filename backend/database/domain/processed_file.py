@@ -1,6 +1,6 @@
 from dataclasses import dataclass, replace
 from typing import Optional
-from util.enums import FileStatus
+from backend.util.enums import FileStatus
 
 @dataclass(frozen=True)
 class ProcessedFile:
@@ -80,7 +80,7 @@ class ProcessedFile:
         """
         return new_status in self.VALID_TRANSITIONS.get(self.status, set())
     
-    def transition_to(self, new_status: FileStatus) -> ProcessedFile:
+    def transition_to(self, new_status: FileStatus) -> "ProcessedFile":
         """
         Creates a new immutable ProcessedFile instance with updated status
         after validating that the transition is allowed.
@@ -171,7 +171,7 @@ class ProcessedFile:
         return self.raw_file_hash
 
     @classmethod
-    def from_row(cls, row: dict) -> ProcessedFile:
+    def from_row(cls, row: dict) -> "ProcessedFile":
         """
         Creates a ProcessedFile domain entity from a database row.
         

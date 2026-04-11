@@ -5,7 +5,7 @@ from datetime import datetime, UTC
 from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.database.infrastructure.query_spec import QuerySpec
 from backend.database.infrastructure.query_executor import QueryExecutor
-
+from dataclasses import replace
 
 class DownlinkSlotRepository:
     """
@@ -83,7 +83,7 @@ class DownlinkSlotRepository:
         from `PENDING` to `ACTIVE`
         :return: Returns complete slot information
         """
-        now = str(datetime.now(UTC).isoformat())
+        now = datetime.now(UTC).isoformat()
 
         cleanup = QuerySpec(
             sql=f"""
@@ -147,17 +147,17 @@ class DownlinkSlotRepository:
         
         claimed_slot = DownlinkSlot.from_row(result.data)
 
-        self.update_status(newStatus = SlotStatus.ACTIVE.value, slot = claimed_slot)
-        
+        claimed_slot = self.update_status(newStatus = SlotStatus.ACTIVE, slot = claimed_slot)
+
         return claimed_slot
         
-    def update_status(self, newStatus: SlotStatus, slot: DownlinkSlot) -> bool:
+    def update_status(self, newStatus: SlotStatus, slot: DownlinkSlot) -> Optional[DownlinkSlot]:
         """
         Updates slot status for a single slot, using its domain identity
 
         :param newStatus: New status of the slot
         :param slot: Slot whose identity is used for lookup
-        :return: True only if exactly one row was updated
+        :return: updated slot domain entity (with updated slot) if successful
         """
         
         if not isinstance(newStatus, SlotStatus):
@@ -182,7 +182,8 @@ class DownlinkSlotRepository:
 
         result = self._executor.execute(spec)
 
-        return result.rows_affected == 1
+        if result.rows_affected == 1:
+            return replace(slot, status=newStatus)
     
     def delete_slot(self, slot: DownlinkSlot) -> bool:
         """

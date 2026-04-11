@@ -6,3 +6,5 @@ venv/
 
 # misc. files
 plan.txt
+test.py
+comet-hunter.db
