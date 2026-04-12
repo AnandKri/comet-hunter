@@ -1,5 +1,5 @@
 from backend.util.constants import DB
-from backend.util.enums import FileStatus, FetchType, OperationType
+from backend.util.enums import FileStatus, FetchType, OperationType, Instrument
 from typing import Optional, ClassVar
 from backend.database.domain.processed_file import ProcessedFile
 from backend.database.infrastructure.query_spec import QuerySpec
@@ -36,6 +36,7 @@ class ProcessedFileRepository:
                 processed_file_name TEXT UNIQUE,
                 processed_file_path TEXT UNIQUE,
                 processed_file_size INTEGER,
+                instrument TEXT NOT NULL,
                 status TEXT NOT NULL CHECK(status IN ({allowed_statuses})),
                 error_message TEXT,
                 downloaded_at TEXT,
@@ -68,6 +69,7 @@ class ProcessedFileRepository:
                     processed_file_name: Optional[str],
                     processed_file_path: Optional[str],
                     processed_file_size: Optional[int],
+                    instrument: Instrument,
                     status: FileStatus,
                     error_message: Optional[str],
                     downloaded_at: Optional[str],
@@ -88,6 +90,7 @@ class ProcessedFileRepository:
         :param processed_file_name: renamed processed file.
         :param processed_file_path: processed file path.
         :param processed_file_size: processed file size in bytes
+        :param instrument: instrument used for observation
         :param status: file processing status
         :param error_message: error thrown as a result of failed file processing 
         :param downloaded_at: UTC timestamp when file downloaded.
@@ -101,6 +104,8 @@ class ProcessedFileRepository:
         
         if not isinstance(status, FileStatus):
             raise ValueError("status must be FileStatus enum")
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be Instrument enum")
         
         spec = QuerySpec(
             sql = f"""
@@ -113,6 +118,7 @@ class ProcessedFileRepository:
                 processed_file_name,
                 processed_file_path,
                 processed_file_size,
+                instrument,
                 status,
                 error_message,
                 downloaded_at,
@@ -121,7 +127,7 @@ class ProcessedFileRepository:
                 processed_at,
                 last_processing_attempt_at,
                 processing_attempt_count)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             operation=OperationType.WRITE,
             params=(
@@ -133,6 +139,7 @@ class ProcessedFileRepository:
                     processed_file_name,
                     processed_file_path,
                     processed_file_size,
+                    instrument.value,
                     status.value,
                     error_message,
                     downloaded_at,

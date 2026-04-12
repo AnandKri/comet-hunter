@@ -114,12 +114,12 @@ class SlotService:
         
         return slots
     
-    def mark_slot_done(self, slot: DownlinkSlot) -> bool:
+    def mark_slot_done(self, slot: DownlinkSlot) -> Optional[DownlinkSlot]:
         """
         Mark slot as completed.
 
         :param slot: slot domain entity
-        :return: True if updated successfully. False otherwise.
+        :return: updated slot domain entity (if successful).
         """
 
         return self._slot_repository.update_status(SlotStatus.DONE ,slot)
@@ -165,3 +165,24 @@ class SlotService:
         slot = self._slot_repository.update_status(SlotStatus.ACTIVE, slot)
 
         return slot
+    
+    def delete_completed_slots(self) -> int:
+        """
+        Deletes completed (`DONE`) slots.
+
+        :return: Number of rows deleted.
+        """
+        
+        return self._slot_repository.delete_completed_slots()
+    
+    def get_recent_slots(self, since: str, now: str) -> list[DownlinkSlot]:
+        """
+        get slots whose time window falls within the time period 
+        between since and now.
+
+        :param since: lower bound timestamp
+        :param now: upper bound timestamp (expected to be current timestamp)
+        :return: List of DownlinkSlot domain entities ordered by `bot_utc` 
+        """
+
+        return self._slot_repository.get_recent_slots(since=since, now=now)

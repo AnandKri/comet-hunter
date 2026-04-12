@@ -1,6 +1,6 @@
 from dataclasses import dataclass, replace
 from typing import Optional
-from backend.util.enums import FileStatus
+from backend.util.enums import FileStatus, Instrument
 
 @dataclass(frozen=True)
 class ProcessedFile:
@@ -20,6 +20,7 @@ class ProcessedFile:
         processed_file_name: Processed file name.
         processed_file_path: Storage path of the processed file.
         processed_file_size: Size of the processed file in bytes.
+        instrument: Instrument used for obesrvation
         status: Current processing lifecycle state.
         error_message: Error details if processing failed.
         downloaded_at: UTC timestamp when file downloaded.
@@ -40,6 +41,7 @@ class ProcessedFile:
     processed_file_name: Optional[str]
     processed_file_path: Optional[str]
     processed_file_size: Optional[int]
+    Instrument: Instrument
     status: FileStatus
     error_message: Optional[str]
     downloaded_at: Optional[str]
@@ -187,6 +189,7 @@ class ProcessedFile:
             processed_file_name=row["processed_file_name"],
             processed_file_path=row["processed_file_path"],
             processed_file_size=row["processed_file_size"],
+            instrument=Instrument(row["instrument"]),
             status=FileStatus(row["status"]),
             error_message=row["error_message"],
             downloaded_at=row["downloaded_at"],

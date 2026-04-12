@@ -9,6 +9,9 @@ class SlotStatus(Enum):
     ACTIVE = "ACTIVE"
     DONE = "DONE"
 
+    def __str__(self):
+        return self.value
+
 class FileStatus(Enum):
     """
     Contains Enum values for various status
@@ -26,6 +29,9 @@ class FileStatus(Enum):
     PROCESSING_FAILED = "PROCESSING_FAILED"
     ABANDONED = "ABANDONED"
 
+    def __str__(self):
+        return self.value
+
 class FetchType(Enum):
     """
     Contains Enum values for fetching number
@@ -33,6 +39,9 @@ class FetchType(Enum):
     """
     ONE = "one"
     ALL = "all"
+
+    def __str__(self):
+        return self.value
 
 class OperationType(Enum):
     """
@@ -42,3 +51,17 @@ class OperationType(Enum):
     """
     READ = "read"
     WRITE = "write"
+
+    def __str__(self):
+        return self.value
+
+class Instrument(Enum):
+    """
+    Contains Enum values for type of 
+    coronagraphs available for LASCO
+    """
+    C2 = "c2"
+    C3 = "c3"
+
+    def __str__(self):
+        return self.value

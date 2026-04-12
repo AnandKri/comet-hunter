@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+from backend.util.enums import Instrument
 
 @dataclass(frozen=True)
 class FileMetadata:
@@ -24,7 +25,7 @@ class FileMetadata:
     raw_file_name: str 
     raw_file_hash: Optional[str]
     datetime_of_observation: str
-    instrument: str
+    instrument: Instrument
     exposure_time: float 
     width: int
     height: int 
@@ -36,7 +37,7 @@ class FileMetadata:
             raw_file_name = row["raw_file_name"],
             raw_file_hash = row["raw_file_hash"],
             datetime_of_observation = row["datetime_of_observation"],
-            instrument = row["instrument"],
+            instrument = Instrument(row["instrument"]),
             exposure_time = row["exposure_time"], 
             width = row["width"],
             height = row["height"], 

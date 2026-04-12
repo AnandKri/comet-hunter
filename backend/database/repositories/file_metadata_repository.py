@@ -1,7 +1,6 @@
 from backend.util.constants import DB
-from backend.util.enums import FetchType, OperationType
+from backend.util.enums import FetchType, OperationType, Instrument
 from typing import Optional, ClassVar
-from backend.database.infrastructure.base import DatabaseBase
 from backend.database.domain.file_metadata import FileMetadata
 from backend.database.infrastructure.query_spec import QuerySpec
 from backend.database.infrastructure.query_executor import QueryExecutor
@@ -54,7 +53,7 @@ class FileMetadataRepository:
                         raw_file_name: str, 
                         raw_file_hash: Optional[str],
                         datetime_of_observation: str,
-                        instrument: str, 
+                        instrument: Instrument, 
                         exposure_time: float, 
                         width: int, 
                         height: int, 
@@ -91,7 +90,7 @@ class FileMetadataRepository:
                     raw_file_name, 
                     raw_file_hash, 
                     datetime_of_observation,
-                    instrument,
+                    instrument.value,
                     exposure_time, 
                     width, 
                     height, 
@@ -199,7 +198,7 @@ class FileMetadataRepository:
 
         return result.data is not None
     
-    def get_files_for_slot(self, instrument: str, start: str, end: str) -> list[FileMetadata]:
+    def get_files_for_slot(self, instrument: Instrument, start: str, end: str) -> list[FileMetadata]:
         """
         Fetch metadata for a specific instrument within a time range
 
@@ -219,7 +218,7 @@ class FileMetadataRepository:
                 ORDER BY datetime_of_observation ASC
             """,
             operation=OperationType.READ,
-            params=(instrument, start, end),
+            params=(instrument.value, start, end),
             fetch=FetchType.ALL
         )
 
@@ -230,7 +229,7 @@ class FileMetadataRepository:
 
         return [FileMetadata.from_row(row) for row in result.data]
     
-    def get_missing_hash_files(self, instrument: str, limit: int) -> list[FileMetadata]:
+    def get_missing_hash_files(self, instrument: Instrument, limit: int = 10) -> list[FileMetadata]:
         """
         Fetch metadata records where raw file hash is not yet populated.
 
@@ -245,11 +244,12 @@ class FileMetadataRepository:
                 SELECT *
                 FROM {self.table_name}
                 WHERE raw_file_hash IS NULL
+                AND instrument = ?
                 ORDER BY datetime_of_observation ASC
                 LIMIT ?
                 """,
             operation=OperationType.READ,
-            params=(),
+            params=(instrument.value, limit),
             fetch=FetchType.ALL
         )
 
@@ -347,7 +347,7 @@ class FileMetadataRepository:
                 (
                     file.raw_file_name,
                     file.datetime_of_observation,
-                    file.instrument,
+                    file.instrument.value,
                     file.exposure_time,
                     file.width,
                     file.height,
@@ -363,4 +363,4 @@ class FileMetadataRepository:
 
     # def bulk_create_metadata(self, files: list[FileMetadata]) -> int:
     # def get_by_names(self, raw_file_names: list[str]) -> list[FileMetadata]:
-    # def get_recent_files(self, limit: int, instrument: str) -> list[FileMetadata]:
+    # def get_recent_files(self, limit: int, instrument: Instrument) -> list[FileMetadata]:
