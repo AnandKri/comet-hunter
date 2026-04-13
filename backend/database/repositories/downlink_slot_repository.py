@@ -299,7 +299,7 @@ class DownlinkSlotRepository:
 
         return result.data is not None
     
-    def get_recent_slots(self, since: str, now: str) -> list[DownlinkSlot]:
+    def get_past_slots(self, since: str, now: str) -> list[DownlinkSlot]:
         """
         Fetch slots overlapping the time window [since, now], excluding future
         or not-yet-activated (PENDING) slots.
@@ -378,3 +378,48 @@ class DownlinkSlotRepository:
             return None
 
         return DownlinkSlot.from_row(result.data)
+    
+    def get_future_slots(self, now: str, till: str) -> list[DownlinkSlot]:
+        """
+        Fetch upcoming slots within time window (now, till].
+
+        A slot is considered upcoming if:
+        - status = PENDING
+        - bot_utc > now
+        - bot_utc <= till
+
+        :param now: starting timestamp (ISO UTC) (expected to be current timestamp)
+        :param till: Upper bound timestamp (ISO UTC)
+        :return: List of upcoming DownlinkSlot entities ordered by `bot_utc`
+        """
+
+        now_dt = datetime.fromisoformat(now)
+        till_dt = datetime.fromisoformat(till)
+
+        if now_dt >= till_dt:
+            raise ValueError("`now` must be earlier than `till`")
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE status = ?
+                AND bot_utc > ?
+                AND bot_utc <= ?
+                ORDER BY bot_utc ASC
+            """,
+            operation=OperationType.READ,
+            params=(
+                SlotStatus.PENDING.value,
+                now,
+                till
+            ),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [DownlinkSlot.from_row(row) for row in result.data]
