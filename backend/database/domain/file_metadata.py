@@ -16,6 +16,7 @@ class FileMetadata:
         raw_file_name: raw file name as present in the data 
         raw_file_hash: calculated file hash value, will be null initially
         datetime_of_observation: date and time of observation
+        last_modified_utc : date time when the file became available 
         instrument: instrument used for observation
         exposure_time: exposure time for taking the image
         width: number of pixels
@@ -25,6 +26,7 @@ class FileMetadata:
     raw_file_name: str 
     raw_file_hash: Optional[str]
     datetime_of_observation: str
+    last_modified_utc : str
     instrument: Instrument
     exposure_time: float 
     width: int
@@ -37,6 +39,7 @@ class FileMetadata:
             raw_file_name = row["raw_file_name"],
             raw_file_hash = row["raw_file_hash"],
             datetime_of_observation = row["datetime_of_observation"],
+            last_modified_utc = row["last_modified_utc"],
             instrument = Instrument(row["instrument"]),
             exposure_time = row["exposure_time"], 
             width = row["width"],

@@ -26,6 +26,7 @@ class FileMetadataRepository:
                 raw_file_name TEXT PRIMARY KEY,
                 raw_file_hash TEXT,
                 datetime_of_observation TEXT NOT NULL,
+                last_modified_utc TEXT NOT NULL,
                 instrument TEXT NOT NULL,
                 exposure_time REAL NOT NULL,
                 width INTEGER NOT NULL,
@@ -41,8 +42,12 @@ class FileMetadataRepository:
         for faster accessbility.
         """
         return [f"""
-            CREATE INDEX IF NOT EXISTS idx_file_metadata_time
+            CREATE INDEX IF NOT EXISTS idx_file_metadata_observation_time
             ON {cls.table_name} (instrument, datetime_of_observation)
+            """,
+            f"""
+            CREATE INDEX IF NOT EXISTS idx_file_metadata_modified_time
+            ON {cls.table_name} (instrument, last_modified_utc)
             """,
             f"""CREATE INDEX IF NOT EXISTS idx_file_metadata_hash
             ON {cls.table_name} (raw_file_hash)
@@ -53,6 +58,7 @@ class FileMetadataRepository:
                         raw_file_name: str, 
                         raw_file_hash: Optional[str],
                         datetime_of_observation: str,
+                        last_modified_utc: str,
                         instrument: Instrument, 
                         exposure_time: float, 
                         width: int, 
@@ -64,6 +70,7 @@ class FileMetadataRepository:
         :param raw_file_name: raw file name, acts as primary key
         :param raw_file_hash: hash value of unprocessed file 
         :param datetime_of_observation: date of observation
+        :param last_modified_utc: date time when file got available
         :param instrument: instrument used to capture the file
         :param exposure_time: exposure time in seconds
         :param width: width in pixels
@@ -78,18 +85,20 @@ class FileMetadataRepository:
                 (raw_file_name,
                 raw_file_hash,
                 datetime_of_observation,
+                last_modified_utc,
                 instrument, 
                 exposure_time, 
                 width, 
                 height, 
                 roll)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             operation=OperationType.WRITE,
             params=(
                     raw_file_name, 
                     raw_file_hash, 
                     datetime_of_observation,
+                    last_modified_utc,
                     instrument.value,
                     exposure_time, 
                     width, 
@@ -213,9 +222,9 @@ class FileMetadataRepository:
                 SELECT *
                 FROM {self.table_name}
                 WHERE instrument = ?
-                AND datetime_of_observation >= ?
-                AND datetime_of_observation <= ?
-                ORDER BY datetime_of_observation ASC
+                AND last_modified_utc >= ?
+                AND last_modified_utc <= ?
+                ORDER BY last_modified_utc ASC
             """,
             operation=OperationType.READ,
             params=(instrument.value, start, end),
@@ -334,19 +343,21 @@ class FileMetadataRepository:
                 INSERT OR IGNORE INTO {self.table_name} (
                     raw_file_name,
                     datetime_of_observation,
+                    last_modified_utc,
                     instrument,
                     exposure_time,
                     width,
                     height,
                     roll
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             operation=OperationType.WRITE,
             params=[
                 (
                     file.raw_file_name,
                     file.datetime_of_observation,
+                    file.last_modified_utc,
                     file.instrument.value,
                     file.exposure_time,
                     file.width,
@@ -361,6 +372,28 @@ class FileMetadataRepository:
 
         return result.rows_affected
 
-    # def bulk_create_metadata(self, files: list[FileMetadata]) -> int:
-    # def get_by_names(self, raw_file_names: list[str]) -> list[FileMetadata]:
-    # def get_recent_files(self, limit: int, instrument: Instrument) -> list[FileMetadata]:
+    def get_latest_last_modified(self, instrument: Instrument) -> Optional[str]:
+        """
+        Fetch latest last modified for given instrument.
+
+        :param instrument: Instrument enum
+        :return: ISO datetime string or None if no records exist
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT MAX(last_modified_utc) as max_dt
+                FROM {self.table_name}
+                WHERE instrument = ?
+            """,
+            operation=OperationType.READ,
+            params=(instrument.value,),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data or result.data["max_dt"] is None:
+            return None
+
+        return result.data["max_dt"]
