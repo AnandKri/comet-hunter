@@ -2,6 +2,8 @@ from typing import List, Optional
 import requests
 from backend.database.repositories.file_metadata_repository import FileMetadataRepository
 from backend.database.domain.file_metadata import FileMetadata
+from backend.database.domain.downlink_slot import DownlinkSlot
+from backend.services.slot_service import SlotService
 from backend.util.constants import Url
 from backend.util.enums import Instrument
 from datetime import datetime, timedelta, UTC
@@ -44,11 +46,17 @@ class MetadataService:
 
         all_metadata = []
 
-        print(since, now)
+        since_dt = datetime.fromisoformat(since)
+        now_dt = datetime.fromisoformat(now)
+
+        print(since_dt, now_dt)
 
         for raw_text, last_modified_map in self._fetch_metadata(instrument, since, now):
             parsed = self._parse_metadata(raw_text, last_modified_map)
-            all_metadata.extend(parsed)
+            filtered = [f for f in parsed
+                        if since_dt <= datetime.fromisoformat(f.last_modified_utc) <= now_dt
+                        ]
+            all_metadata.extend(filtered)
         
         new_files = self._discover_new_files(all_metadata)
 
@@ -194,3 +202,57 @@ class MetadataService:
                 continue
 
         return result
+    
+    def get_metadata_for_slots(self, slots: list[DownlinkSlot], instrument: Instrument) -> list[FileMetadata]:
+        """
+        returns files metadata entities for a given slot and instrument
+
+        :param slots: list of slots domain entities
+        :param instrument: instrument used for observation
+        :return: list of file metadata entities
+        """
+
+        if not slots:
+            return []
+        
+        start = min(s.bot_utc for s in slots)
+        end = max(s.eot_utc for s in slots)
+        
+        return self._metadata_repository.get_files_for_slot(
+            instrument=instrument,
+            start=start,
+            end=end
+        )
+    
+    def get_metadata_for_active_slot(self, slot_service: SlotService, instrument: Instrument) -> list[FileMetadata]:
+        """
+        Fetch metadata for current active slot.
+
+        :param slot_service: slot service instance
+        :param instrument: instrument used for observation
+        :return: list of metadata files domain entities
+        """
+
+        slot = slot_service.sync_and_get_active_slot()
+
+        if not slot:
+            return []
+        
+        return self.get_metadata_by_slot(slot, instrument)
+    
+    def sync_metadata_for_slots(self, slots: list[DownlinkSlot], instrument: Instrument) -> int:
+        """
+        Sync metadata for given slots. takes start date of earliest slot and end date of latest slot. 
+
+        :param slots: list of slots domain entities
+        :param instrument: instrument used for observation
+        :return: number of files metadata inserted into db
+        """
+
+        if not slots:
+            return 0
+        
+        since = min(s.bot_utc for s in slots)
+        now = max(s.eot_utc for s in slots)
+
+        return self.sync_metadata(instrument, since, now)
