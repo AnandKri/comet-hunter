@@ -4,7 +4,7 @@ The roadmap is organized around system maturity rather than feature breadth.
 
 ---
 
-### Phase 1 — Deterministic Core (In Progress)
+### Phase 1 — Deterministic Core (Completed)
 
 - Domain modeling
 - Enum-based state transitions
@@ -17,7 +17,7 @@ Establish a restartable, correct ingestion skeleton.
 
 ---
 
-### Phase 2 — Metadata & Download Integrity
+### Phase 2 — Metadata & Download Integrity (In Progress)
 
 - Remote metadata polling
 - Unique file registration
