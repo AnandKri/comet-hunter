@@ -44,7 +44,7 @@ This project approaches the problem as a reliability-focused systems design exer
 
 ---
 
-## Documentation
+### Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Database Schema](docs/DATABASE_SCHEMA.md)
