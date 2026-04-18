@@ -1,6 +1,6 @@
 # Comet Hunter (work in progress)
 
-Comet Hunter is a deterministic ingestion and processing pipeline for LASCO image streams, designed to enable reliable chronological visualization of faint moving sungrazing comets.
+Comet Hunter is a deterministic ingestion and processing pipeline for LASCO image streams, designed to enable reliable visualization of faint moving sungrazing comets.
 
 The project focuses on correctness, restartability, and explicit state modeling.
 
@@ -12,8 +12,7 @@ A structured backend system capable of ingesting, processing, and serving time-o
 ### Why This Exists
 
 Present challenges:
-- Raw images have low signal to noise ratio
-- Images require preprocessed before they are usable
+- Images are required to be processed before they become usable
 - Sungrazer comets are faint and often indistinguishable in single frame
 - Chronological playback significantly improves detectability
 - The citizen scientist community is large and highly active
@@ -32,15 +31,28 @@ This project approaches the problem as a reliability-focused systems design exer
 
 ---
 
+### Running Locally
+
+1. Initialize database
+2. Sync slots
+3. Sync metadata
+4. Trigger download
+5. Process files (in progress)
+6. Visualization of processed files (planned)
+
+(Commands and example script coming soon...)
+
+---
+
 ### System Flow
 
 1. Slot Modeling
-2. Metadata Detection  
-3. File Registration  
-4. File Download  
-5. Frame Processing  
-6. Time-Indexed Retrieval  
-7. Visualization Layer
+2. File Metadata Ingestion  
+4. File Discovery
+5. File Download
+6. File Processing  
+7. Time-Indexed Retrieval  
+8. Visualization Layer
 
 Each stage is independently restartable and governed by explicit state transitions.
 
@@ -54,11 +66,12 @@ Implemented:
 - Deterministic schema bootstrap
 - Enum-based finite state transitions
 - Indexed temporal access patterns
-
-In progress:
 - Metadata ingestion
 - Download orchestration
+
+In progress:
 - Processing pipeline
+- Implementing image processing algorithm
 
 Planned:
 - REST retrieval API
@@ -69,12 +82,13 @@ Planned:
 ### Architectural Characteristics
 
 - Domain-first modeling
-- Idempotent pipeline semantics
+- Idempotent pipeline semantics (using file names as primary key, retry counters, state transitions)
 - Explicit state transitions (no implicit flags)
 - Per-query transactional boundaries
 - Strict separation of DB writes from I/O
 - Deterministic initialization
 - Indexed time-series access
+- Failure Handling (retry limits, failure states)
 
 ---
 

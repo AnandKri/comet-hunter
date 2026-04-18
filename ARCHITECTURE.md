@@ -59,7 +59,12 @@ Database updates are intentionally separated from network and file I/O operation
 
 The ingestion model progresses through explicit stages:
 
-SLOT_CREATED → AVAILABLE → DOWNLOADED → PROCESSED
+Slot lifecycle:
+PENDING → ACTIVE → DONE / MISSED
+
+File lifecycle (ideal):
+DISCOVERED → DOWNLOADING → DOWNLOADED → READY → PROCESSING → PROCESSED
+(with failure + retry branches)
 
 Each transition is:
 

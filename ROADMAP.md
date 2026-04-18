@@ -4,7 +4,7 @@ The roadmap is organized around system maturity rather than feature breadth.
 
 ---
 
-### Phase 1 — Deterministic Core (Completed)
+### Phase 1 — Deterministic Core (Implemented)
 
 - Domain modeling
 - Enum-based state transitions
@@ -20,8 +20,8 @@ Establish a restartable, correct ingestion skeleton.
 ### Phase 2 — Metadata & Download Integrity (In Progress)
 
 - Remote metadata polling
-- Unique file registration
-- Download orchestration
+- Unique file discovery
+- Download orchestration (implemented, in testing)
 - Retry semantics
 - Local file structure normalization
 
@@ -35,7 +35,7 @@ Achieve deterministic, idempotent file acquisition.
 - FITS ingestion
 - Frame normalization
 - Contrast enhancement
-- Optional differencing
+- Frame differencing (core of motion detection)
 - Processed output tracking
 
 **Goal:**  
@@ -86,5 +86,5 @@ If validated:
 
 - Parallelized processing
 - Distributed ingestion
-- Automated motion detection heuristics
+- Automated motion detection heuristics (heavier lift)
 - Statistical filtering for candidate identification
