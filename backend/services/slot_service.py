@@ -175,28 +175,28 @@ class SlotService:
         
         return self._slot_repository.delete_completed_slots()
     
-    def get_past_slots(self, since: str, now: str) -> list[DownlinkSlot]:
+    def get_past_slots(self, start: str, end: str) -> list[DownlinkSlot]:
         """
         get slots whose time window falls within the time period 
-        between since and now.
+        between start and end.
 
-        :param since: lower bound timestamp
-        :param now: upper bound timestamp (expected to be current timestamp)
+        :param start: lower bound timestamp
+        :param end: upper bound timestamp (expected to be current timestamp)
         :return: List of DownlinkSlot domain entities ordered by `bot_utc` 
         """
 
-        return self._slot_repository.get_past_slots(since=since, now=now)
+        return self._slot_repository.get_past_slots(start=start, end=end)
     
-    def get_future_slots(self, now: str, till: str) -> list[DownlinkSlot]:
+    def get_future_slots(self, start: str, end: str) -> list[DownlinkSlot]:
         """
         Returns future slots - which are not yet started.
         
         Could be utilized when there's no current `ACTIVE` slot,
         and we want to see next upcoming slots.
 
-        :param now: starting timestamp (ISO UTC) (expected to be current timestamp)
-        :param till: Upper bound timestamp (ISO UTC)
+        :param start: starting timestamp (ISO UTC) (expected to be current timestamp)
+        :param end: Upper bound timestamp (ISO UTC)
         :return: Return list of slot domain entities.
         """
 
-        return self._slot_repository.get_future_slots(now, till)
+        return self._slot_repository.get_future_slots(start, end)

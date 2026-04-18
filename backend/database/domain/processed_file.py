@@ -12,14 +12,15 @@ class ProcessedFile:
     status within the pipeline.
 
     Attributes:
+        raw_file_name: Original raw file name - primary key.
         raw_file_hash: Content hash of the original raw file.
-        raw_file_name: Original raw file name.
         raw_file_path: Storage path of the raw file.
         raw_file_size: Size of the raw file in bytes.
-        processed_file_hash: Content hash of the processed file.
         processed_file_name: Processed file name.
+        processed_file_hash: Content hash of the processed file.
         processed_file_path: Storage path of the processed file.
         processed_file_size: Size of the processed file in bytes.
+        datetime_of_observation: date time of observation
         instrument: Instrument used for obesrvation
         status: Current processing lifecycle state.
         error_message: Error details if processing failed.
@@ -33,22 +34,23 @@ class ProcessedFile:
     Invariants:
         - status value is one of the FileStatus enums
     """
-    raw_file_hash: str
     raw_file_name: str
+    raw_file_hash: Optional[str]
     raw_file_path: str
     raw_file_size: Optional[int]
-    processed_file_hash: Optional[str]
     processed_file_name: Optional[str]
+    processed_file_hash: Optional[str]
     processed_file_path: Optional[str]
     processed_file_size: Optional[int]
-    Instrument: Instrument
+    datetime_of_observation: str
+    instrument: Instrument
     status: FileStatus
     error_message: Optional[str]
     downloaded_at: Optional[str]
-    last_downloading_attempt_at: str
+    last_downloading_attempt_at: Optional[str]
     downloading_attempt_count: int
     processed_at: Optional[str]
-    last_processing_attempt_at: str
+    last_processing_attempt_at: Optional[str]
     processing_attempt_count: int
 
     VALID_TRANSITIONS = {
@@ -164,13 +166,13 @@ class ProcessedFile:
         """
         Returns the unique identity of the processed file domain entity.
 
-        The raw file hash acts as the natural identity since it uniquely
+        The raw file name acts as the natural identity since it uniquely
         represents the source file across the pipeline.
 
-        :returns: Raw file hash (primary identity).
+        :returns: Raw file name (primary identity).
         """
 
-        return self.raw_file_hash
+        return self.raw_file_name
 
     @classmethod
     def from_row(cls, row: dict) -> "ProcessedFile":
@@ -181,14 +183,15 @@ class ProcessedFile:
         :return: Constructed domain entity populated from DB row.
         """
         return cls(
-            raw_file_hash=row["raw_file_hash"],
             raw_file_name=row["raw_file_name"],
+            raw_file_hash=row["raw_file_hash"],
             raw_file_path=row["raw_file_path"],
             raw_file_size=row["raw_file_size"],
-            processed_file_hash=row["processed_file_hash"],
             processed_file_name=row["processed_file_name"],
+            processed_file_hash=row["processed_file_hash"],
             processed_file_path=row["processed_file_path"],
             processed_file_size=row["processed_file_size"],
+            datetime_of_observation=row["datetime_of_observation"],
             instrument=Instrument(row["instrument"]),
             status=FileStatus(row["status"]),
             error_message=row["error_message"],

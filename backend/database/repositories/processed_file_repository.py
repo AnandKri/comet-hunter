@@ -28,22 +28,23 @@ class ProcessedFileRepository:
 
         return f"""
             CREATE TABLE IF NOT EXISTS {cls.table_name} (
-                raw_file_hash TEXT PRIMARY KEY,
-                raw_file_name TEXT UNIQUE NOT NULL,
+                raw_file_name TEXT PRIMARY KEY,
+                raw_file_hash TEXT UNIQUE,
                 raw_file_path TEXT UNIQUE NOT NULL,
-                raw_file_size INTEGER NOT NULL,
-                processed_file_hash TEXT UNIQUE,
+                raw_file_size INTEGER,
                 processed_file_name TEXT UNIQUE,
+                processed_file_hash TEXT UNIQUE,
                 processed_file_path TEXT UNIQUE,
                 processed_file_size INTEGER,
+                datetime_of_observation TEXT NOT NULL,
                 instrument TEXT NOT NULL,
                 status TEXT NOT NULL CHECK(status IN ({allowed_statuses})),
                 error_message TEXT,
                 downloaded_at TEXT,
-                last_downloading_attempt_at TEXT NOT NULL,
+                last_downloading_attempt_at TEXT,
                 downloading_attempt_count INTEGER NOT NULL DEFAULT 0,
                 processed_at TEXT,
-                last_processing_attempt_at TEXT NOT NULL,
+                last_processing_attempt_at TEXT,
                 processing_attempt_count INTEGER NOT NULL DEFAULT 0
             )
         """
@@ -53,43 +54,45 @@ class ProcessedFileRepository:
         """
         Query to create index for `processed_file` table
         for faster accessibility while filtering based 
-        on status and last_downloading_attempt_at.
+        on status and datetime_of_observation.
         """
         return f"""
             CREATE INDEX IF NOT EXISTS idx_processed_status_time
-            ON {cls.table_name} (status, last_downloading_attempt_at)
+            ON {cls.table_name} (status, datetime_of_observation)
         """
     
     def create_file(self,
-                    raw_file_hash: str,
                     raw_file_name: str,
+                    raw_file_hash: Optional[str],
                     raw_file_path: str,
-                    raw_file_size: int,
-                    processed_file_hash: Optional[str],
+                    raw_file_size: Optional[int],
                     processed_file_name: Optional[str],
+                    processed_file_hash: Optional[str],
                     processed_file_path: Optional[str],
                     processed_file_size: Optional[int],
+                    datetime_of_observation: str,
                     instrument: Instrument,
                     status: FileStatus,
                     error_message: Optional[str],
                     downloaded_at: Optional[str],
-                    last_downloading_attempt_at: str,
+                    last_downloading_attempt_at: Optional[str],
                     downloading_attempt_count: int,
                     processed_at: Optional[str],
-                    last_processing_attempt_at: str,
+                    last_processing_attempt_at: Optional[str],
                     processing_attempt_count: int) -> bool:
         """
         Checks if file status is valid or not.
         creates the file details to a row in the table
         
-        :param raw_file_hash: hash value of unprocessed file, works as primary key
-        :param raw_file_name: raw file name, as appears in img-hdr.txt
+        :param raw_file_name: raw file name, as appears in img-hdr.txt - primary key
+        :param raw_file_hash: hash value of unprocessed file
         :param raw_file_path: raw file path.
         :param raw_file_size: raw file size in bytes.
-        :param processed_file_hash: hash value of processed file.
         :param processed_file_name: renamed processed file.
+        :param processed_file_hash: hash value of processed file.
         :param processed_file_path: processed file path.
         :param processed_file_size: processed file size in bytes
+        :param datetime_of_observation: date time of observation
         :param instrument: instrument used for observation
         :param status: file processing status
         :param error_message: error thrown as a result of failed file processing 
@@ -110,14 +113,15 @@ class ProcessedFileRepository:
         spec = QuerySpec(
             sql = f"""
                 INSERT OR IGNORE INTO {self.table_name}
-                (raw_file_hash,
-                raw_file_name,
+                (raw_file_name,
+                raw_file_hash,
                 raw_file_path,
                 raw_file_size,
-                processed_file_hash,
                 processed_file_name,
+                processed_file_hash,
                 processed_file_path,
                 processed_file_size,
+                datetime_of_observation,
                 instrument,
                 status,
                 error_message,
@@ -127,18 +131,19 @@ class ProcessedFileRepository:
                 processed_at,
                 last_processing_attempt_at,
                 processing_attempt_count)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             operation=OperationType.WRITE,
             params=(
-                    raw_file_hash,
                     raw_file_name,
+                    raw_file_hash,
                     raw_file_path,
                     raw_file_size,
-                    processed_file_hash,
                     processed_file_name,
+                    processed_file_hash,
                     processed_file_path,
                     processed_file_size,
+                    datetime_of_observation,
                     instrument.value,
                     status.value,
                     error_message,
@@ -155,11 +160,11 @@ class ProcessedFileRepository:
 
         return result.rows_affected == 1
     
-    def read_file(self, raw_file_hash: str) -> Optional[ProcessedFile]:
+    def read_file_by_name(self, raw_file_name: str) -> Optional[ProcessedFile]:
         """
-        Fetch processed file record using raw file hash value
+        Fetch processed file record using raw file name value
 
-        :param raw_file_hash: Computed hash value of raw file, primary key
+        :param raw_file_name: Computed name value of raw file, primary key
         :return : returns complete file processing data
         """
 
@@ -167,10 +172,10 @@ class ProcessedFileRepository:
             sql=f"""
                 SELECT *
                 FROM {self.table_name}
-                WHERE raw_file_hash = ?
+                WHERE raw_file_name = ?
             """,
             operation=OperationType.READ,
-            params=(raw_file_hash,),
+            params=(raw_file_name,),
             fetch=FetchType.ONE
         )
 
@@ -192,10 +197,10 @@ class ProcessedFileRepository:
         spec = QuerySpec(
             sql=f"""
                 DELETE FROM {self.table_name}
-                WHERE raw_file_hash = ?
+                WHERE raw_file_name = ?
             """,
             operation=OperationType.WRITE,
-            params=(file.raw_file_hash,)
+            params=(file.raw_file_name,)
         )
 
         result = self._executor.execute(spec)
@@ -225,7 +230,7 @@ class ProcessedFileRepository:
                     processed_at = ?,
                     last_processing_attempt_at = ?,
                     processing_attempt_count = ?
-                WHERE raw_file_hash = ?
+                WHERE raw_file_name = ?
             """,
             operation=OperationType.WRITE,
             params=(
@@ -241,7 +246,7 @@ class ProcessedFileRepository:
                 file.processed_at,
                 file.last_processing_attempt_at,
                 file.processing_attempt_count,
-                file.raw_file_hash
+                file.raw_file_name
             )
         )
 
@@ -249,11 +254,11 @@ class ProcessedFileRepository:
 
         return result.rows_affected == 1
 
-    def exists(self, raw_file_hash: str) -> bool:
+    def exists_by_name(self, raw_file_name: str) -> bool:
         """
         Checks if a processed file record exists.
 
-        :param raw_file_hash: Raw file identity.
+        :param raw_file_name: Raw file name.
         :return: True if record exists.
         """
 
@@ -261,10 +266,10 @@ class ProcessedFileRepository:
             sql=f"""
                 SELECT 1
                 FROM {self.table_name}
-                WHERE raw_file_hash = ?
+                WHERE raw_file_name = ?
             """,
             operation=OperationType.READ,
-            params=(raw_file_hash,),
+            params=(raw_file_name,),
             fetch=FetchType.ONE
         )
 

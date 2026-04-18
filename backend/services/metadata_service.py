@@ -22,39 +22,37 @@ class MetadataService:
     def __init__(self, metadata_repository: FileMetadataRepository):
         self._metadata_repository = metadata_repository
     
-    def sync_metadata(self, instrument: Instrument, since: Optional[str] = None, now: Optional[str] = None) -> int:
+    def sync_metadata(self, instrument: Instrument, start: Optional[str] = None, end: Optional[str] = None) -> int:
         """
         Fetch metadata from remote source and update database.
 
-        If `since` is not provided, it is inferred from DB (latest available record).
-        If `now` is not provided, current UTC time is used.
+        If `start` is not provided, it is inferred from DB (latest available record).
+        If `end` is not provided, current UTC time is used.
 
         :param instrument: instrument to sync (C2/C3)
-        :param since: start datetime (ISO string, optional)
-        :param now: end datetime (ISO string, optional)
+        :param start: start datetime (ISO string, optional)
+        :param end: end datetime (ISO string, optional)
         :return: number of new records inserted
         """
 
-        if now is None:
-            now = datetime.now(UTC).isoformat()
-        if since is None:
-            since = self._metadata_repository.get_latest_last_modified(instrument)
-            if since is None:
-                since = (datetime.fromisoformat(now) - timedelta(days=1)).isoformat()
+        if end is None:
+            end = datetime.now(UTC).isoformat()
+        if start is None:
+            start = self._metadata_repository.get_latest_last_modified(instrument)
+            if start is None:
+                start = (datetime.fromisoformat(end) - timedelta(days=1)).isoformat()
             else:
-                since = (datetime.fromisoformat(since) - timedelta(days=1)).isoformat()
+                start = (datetime.fromisoformat(start) - timedelta(days=1)).isoformat()
 
         all_metadata = []
 
-        since_dt = datetime.fromisoformat(since)
-        now_dt = datetime.fromisoformat(now)
+        start_dt = datetime.fromisoformat(start)
+        end_dt = datetime.fromisoformat(end)
 
-        print(since_dt, now_dt)
-
-        for raw_text, last_modified_map in self._fetch_metadata(instrument, since, now):
+        for raw_text, last_modified_map in self._fetch_metadata(instrument, start, end):
             parsed = self._parse_metadata(raw_text, last_modified_map)
             filtered = [f for f in parsed
-                        if since_dt <= datetime.fromisoformat(f.last_modified_utc) <= now_dt
+                        if start_dt <= datetime.fromisoformat(f.last_modified_utc) <= end_dt
                         ]
             all_metadata.extend(filtered)
         
@@ -62,23 +60,23 @@ class MetadataService:
 
         return self._metadata_repository.bulk_create_metadata(new_files)
     
-    def _fetch_metadata(self, instrument: Instrument, since: str, now: str) -> list[tuple[str, dict]]:
+    def _fetch_metadata(self, instrument: Instrument, start: str, end: str) -> list[tuple[str, dict]]:
         """
         Fetch metadata for each day in a given range.
 
         :param instrument: instrument (C2/C3)
-        :param since: start datetime (ISO string)
-        :param now: end datetime (ISO string), supposed to be current datetime
+        :param start: start datetime (ISO string)
+        :param end: end datetime (ISO string), supposed to be current datetime
         :return: list of raw metadata text (one per day)
         """
 
-        since_date = datetime.fromisoformat(since).date()
-        now_date = datetime.fromisoformat(now).date()
-        current = since_date
+        start_date = datetime.fromisoformat(start).date()
+        end_date = datetime.fromisoformat(end).date()
+        current = start_date
 
         results = []
 
-        while current <= now_date:
+        while current <= end_date:
             dt_str = current.isoformat()
             metadata_url = Url.build_metadata_url(dt_str, instrument)
 
@@ -203,20 +201,20 @@ class MetadataService:
 
         return result
     
-    def get_metadata_for_slots(self, slots: list[DownlinkSlot], instrument: Instrument) -> list[FileMetadata]:
+    def get_metadata_for_slots(self, instrument: Instrument, slots: list[DownlinkSlot]) -> list[FileMetadata]:
         """
         returns files metadata entities for a given slot and instrument
 
-        :param slots: list of slots domain entities
         :param instrument: instrument used for observation
+        :param slots: list of slots domain entities
         :return: list of file metadata entities
         """
 
         if not slots:
             return []
         
-        start = min(s.bot_utc for s in slots)
-        end = max(s.eot_utc for s in slots)
+        start = min(slot.bot_utc for slot in slots)
+        end = max(slot.eot_utc for slot in slots)
         
         return self._metadata_repository.get_files_for_slot(
             instrument=instrument,
@@ -224,35 +222,47 @@ class MetadataService:
             end=end
         )
     
-    def get_metadata_for_active_slot(self, slot_service: SlotService, instrument: Instrument) -> list[FileMetadata]:
+    def get_metadata(self, instrument: Instrument, start: str, end: str) -> List[FileMetadata]:
+        """
+        returns file metadata for a given time window and instrument
+
+        :param instrument: instrument used for observation
+        :param start: start timestamp (ISO)
+        :param end: end timestamp (ISO)
+        :return: list of file metadata domain entities
+        """
+        
+        return self._metadata_repository.get_files_for_slot(instrument, start, end)
+    
+    def get_metadata_for_active_slot(self, instrument: Instrument, slot_service: SlotService) -> list[FileMetadata]:
         """
         Fetch metadata for current active slot.
 
-        :param slot_service: slot service instance
         :param instrument: instrument used for observation
+        :param slot_service: slot service instance
         :return: list of metadata files domain entities
         """
 
-        slot = slot_service.sync_and_get_active_slot()
+        slot = [slot_service.sync_and_get_active_slot()]
 
         if not slot:
             return []
         
-        return self.get_metadata_by_slot(slot, instrument)
+        return self.get_metadata_for_slots(slot, instrument)
     
-    def sync_metadata_for_slots(self, slots: list[DownlinkSlot], instrument: Instrument) -> int:
+    def sync_metadata_for_slots(self, instrument: Instrument, slots: list[DownlinkSlot]) -> int:
         """
         Sync metadata for given slots. takes start date of earliest slot and end date of latest slot. 
 
-        :param slots: list of slots domain entities
         :param instrument: instrument used for observation
+        :param slots: list of slots domain entities
         :return: number of files metadata inserted into db
         """
 
         if not slots:
             return 0
         
-        since = min(s.bot_utc for s in slots)
-        now = max(s.eot_utc for s in slots)
+        start = min(slot.bot_utc for slot in slots)
+        end = max(slot.eot_utc for slot in slots)
 
-        return self.sync_metadata(instrument, since, now)
+        return self.sync_metadata(instrument, start, end)
