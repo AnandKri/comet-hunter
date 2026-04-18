@@ -44,6 +44,15 @@ This project approaches the problem as a reliability-focused systems design exer
 
 ---
 
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Database Schema](docs/DATABASE_SCHEMA.md)
+- [Processing Pipeline](docs/PROCESSING_PIPELINE.md)
+- [Roadmap](docs/ROADMAP.md)
+
+---
+
 ### System Flow
 
 1. Slot Modeling

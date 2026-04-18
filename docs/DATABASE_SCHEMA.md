@@ -141,4 +141,4 @@ ON processed_file (status, datetime_of_observation);
 - Separate tracking for download and processing retries
 - Immutable state transitions enforced at domain level
 - Supports idempotent re-execution
-- Find detailed of State lifecycle [here](architecture/processed_file_lifecycle.svg)
+- Find detailed of State lifecycle [here](lifecycle//processed_file_lifecycle.svg)
