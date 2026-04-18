@@ -49,8 +49,8 @@ class FileMetadataRepository:
             CREATE INDEX IF NOT EXISTS idx_file_metadata_modified_time
             ON {cls.table_name} (instrument, last_modified_utc)
             """,
-            f"""CREATE INDEX IF NOT EXISTS idx_file_metadata_hash
-            ON {cls.table_name} (raw_file_hash)
+            f"""CREATE INDEX IF NOT EXISTS idx_file_metadata_name
+            ON {cls.table_name} (raw_file_name)
             """
         ]
     
