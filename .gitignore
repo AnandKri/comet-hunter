@@ -6,6 +6,6 @@ venv/
 
 # misc. files
 plan.txt
-test_slot_service.py
-test_metadata_service.py
+test_*
 comet-hunter.db
+images/
