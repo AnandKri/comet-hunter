@@ -6,6 +6,9 @@ venv/
 
 # misc. files
 plan.txt
-test_*
+
+#database
 comet-hunter.db
-images/
+
+#coronagraph raw files
+data/
