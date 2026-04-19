@@ -3,6 +3,7 @@ from backend.database.repositories.downlink_slot_repository import DownlinkSlotR
 from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.util.constants import Url
 from backend.util.enums import SlotStatus
+from backend.util.funcs import validate_time_window
 import requests
 import re
 from datetime import datetime, timedelta, UTC 
@@ -175,28 +176,31 @@ class SlotService:
         
         return self._slot_repository.delete_completed_slots()
     
-    def get_past_slots(self, start: str, end: str) -> list[DownlinkSlot]:
+    def get_past_slots(self, downlink_start_utc: str, downlink_end_utc: str) -> list[DownlinkSlot]:
         """
         get slots whose time window falls within the time period 
         between start and end.
 
-        :param start: lower bound timestamp
-        :param end: upper bound timestamp (expected to be current timestamp)
+        :param downlink_start_utc: lower bound timestamp
+        :param downlink_end_utc: upper bound timestamp (expected to be current timestamp)
         :return: List of DownlinkSlot domain entities ordered by `bot_utc` 
         """
+        validate_time_window(downlink_start_utc, downlink_end_utc)
 
-        return self._slot_repository.get_past_slots(start=start, end=end)
+        return self._slot_repository.get_past_slots(downlink_start_utc=downlink_start_utc, downlink_end_utc=downlink_end_utc)
     
-    def get_future_slots(self, start: str, end: str) -> list[DownlinkSlot]:
+    def get_future_slots(self, downlink_start_utc: str, downlink_end_utc: str) -> list[DownlinkSlot]:
         """
         Returns future slots - which are not yet started.
         
         Could be utilized when there's no current `ACTIVE` slot,
         and we want to see next upcoming slots.
 
-        :param start: starting timestamp (ISO UTC) (expected to be current timestamp)
-        :param end: Upper bound timestamp (ISO UTC)
+        :param downlink_start_utc: starting timestamp (ISO UTC) (expected to be current timestamp)
+        :param downlink_end_utc: Upper bound timestamp (ISO UTC)
         :return: Return list of slot domain entities.
         """
 
-        return self._slot_repository.get_future_slots(start, end)
+        validate_time_window(downlink_start_utc, downlink_end_utc)
+
+        return self._slot_repository.get_future_slots(downlink_start_utc, downlink_end_utc)

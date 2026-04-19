@@ -6,6 +6,7 @@ from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.services.slot_service import SlotService
 from backend.util.constants import Url
 from backend.util.enums import Instrument
+from backend.util.funcs import validate_time_window
 from datetime import datetime, timedelta, UTC
 from zoneinfo import ZoneInfo
 import re
@@ -22,37 +23,39 @@ class MetadataService:
     def __init__(self, metadata_repository: FileMetadataRepository):
         self._metadata_repository = metadata_repository
     
-    def sync_metadata(self, instrument: Instrument, start: Optional[str] = None, end: Optional[str] = None) -> int:
+    def sync_metadata(self, instrument: Instrument, downlink_start_utc: Optional[str] = None, downlink_end_utc: Optional[str] = None) -> int:
         """
         Fetch metadata from remote source and update database.
 
-        If `start` is not provided, it is inferred from DB (latest available record).
-        If `end` is not provided, current UTC time is used.
+        If `downlink_start_utc` is not provided, it is inferred from DB (latest available record).
+        If `downlink_end_utc` is not provided, current UTC time is used.
 
         :param instrument: instrument to sync (C2/C3)
-        :param start: start datetime (ISO string, optional)
-        :param end: end datetime (ISO string, optional)
+        :param downlink_start_utc: start datetime (ISO string, optional)
+        :param downlink_end_utc: end datetime (ISO string, optional)
         :return: number of new records inserted
         """
 
-        if end is None:
-            end = datetime.now(UTC).isoformat()
-        if start is None:
-            start = self._metadata_repository.get_latest_last_modified(instrument)
-            if start is None:
-                start = (datetime.fromisoformat(end) - timedelta(days=1)).isoformat()
+        validate_time_window(downlink_start_utc, downlink_end_utc)
+
+        if downlink_end_utc is None:
+            downlink_end_utc = datetime.now(UTC).isoformat()
+        if downlink_start_utc is None:
+            downlink_start_utc = self._metadata_repository.get_latest_last_modified(instrument)
+            if downlink_start_utc is None:
+                downlink_start_utc = (datetime.fromisoformat(downlink_end_utc) - timedelta(days=1)).isoformat()
             else:
-                start = (datetime.fromisoformat(start) - timedelta(days=1)).isoformat()
+                downlink_start_utc = (datetime.fromisoformat(downlink_start_utc) - timedelta(days=1)).isoformat()
 
         all_metadata = []
 
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+        downlink_start_dt_utc = datetime.fromisoformat(downlink_start_utc)
+        downlink_end_dt_utc = datetime.fromisoformat(downlink_end_utc)
 
-        for raw_text, last_modified_map in self._fetch_metadata(instrument, start, end):
+        for raw_text, last_modified_map in self._fetch_metadata(instrument, downlink_start_utc, downlink_end_utc):
             parsed = self._parse_metadata(raw_text, last_modified_map)
             filtered = [f for f in parsed
-                        if start_dt <= datetime.fromisoformat(f.last_modified_utc) <= end_dt
+                        if downlink_start_dt_utc <= datetime.fromisoformat(f.last_modified_utc) <= downlink_end_dt_utc
                         ]
             all_metadata.extend(filtered)
         
@@ -60,35 +63,35 @@ class MetadataService:
 
         return self._metadata_repository.bulk_create_metadata(new_files)
     
-    def _fetch_metadata(self, instrument: Instrument, start: str, end: str) -> list[tuple[str, dict]]:
+    def _fetch_metadata(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> list[tuple[str, dict]]:
         """
         Fetch metadata for each day in a given range.
 
         :param instrument: instrument (C2/C3)
-        :param start: start datetime (ISO string)
-        :param end: end datetime (ISO string), supposed to be current datetime
+        :param downlink_start_utc: start datetime (ISO string)
+        :param downlink_end_utc: end datetime (ISO string), supposed to be current datetime
         :return: list of raw metadata text (one per day)
         """
 
-        start_date = datetime.fromisoformat(start).date()
-        end_date = datetime.fromisoformat(end).date()
-        current = start_date
+        downlink_start_date_utc = datetime.fromisoformat(downlink_start_utc).date()
+        downlink_end_date_utc = datetime.fromisoformat(downlink_end_utc).date()
+        downlink_current_utc = downlink_start_date_utc
 
         results = []
 
-        while current <= end_date:
-            dt_str = current.isoformat()
-            metadata_url = Url.build_metadata_url(dt_str, instrument)
+        while downlink_current_utc <= downlink_end_date_utc:
+            downlink_dt_str_utc = downlink_current_utc.isoformat()
+            metadata_url = Url.build_metadata_url(downlink_dt_str_utc, instrument)
 
             try:
                 response = requests.get(metadata_url, timeout=15)
                 response.raise_for_status()
-                last_modified_map = self._fetch_last_modified_map(instrument, dt_str)
+                last_modified_map = self._fetch_last_modified_map(instrument, downlink_dt_str_utc)
                 results.append((response.text, last_modified_map))
             except Exception:
                 pass
 
-            current += timedelta(days=1)
+            downlink_current_utc += timedelta(days=1)
         return results
     
     def _discover_new_files(self, files:List[FileMetadata]) -> List[FileMetadata]:
@@ -159,13 +162,13 @@ class MetadataService:
         
         return files
     
-    def _fetch_last_modified_map(self, instrument: Instrument, dt: str) -> dict[str, str]:
+    def _fetch_last_modified_map(self, instrument: Instrument, downlink_dt_utc: str) -> dict[str, str]:
         """
         Fetch directory listing and return:
         filename -> last_modified_utc
         """
 
-        url = Url.build_base_path(dt, instrument)
+        url = Url.build_base_path(downlink_dt_utc, instrument)
 
         try:
             response = requests.get(url, timeout=15)
@@ -213,26 +216,32 @@ class MetadataService:
         if not slots:
             return []
         
-        start = min(slot.bot_utc for slot in slots)
-        end = max(slot.eot_utc for slot in slots)
+        downlink_start_utc = min(slot.bot_utc for slot in slots)
+        downlink_end_utc = max(slot.eot_utc for slot in slots)
         
-        return self._metadata_repository.get_files_for_slot(
+        return self._metadata_repository.get_metadata_for_slot(
             instrument=instrument,
-            start=start,
-            end=end
+            downlink_start_utc=downlink_start_utc,
+            downlink_end_utc=downlink_end_utc
         )
     
-    def get_metadata(self, instrument: Instrument, start: str, end: str) -> List[FileMetadata]:
+    def get_metadata_for_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> List[FileMetadata]:
         """
         returns file metadata for a given time window and instrument
 
         :param instrument: instrument used for observation
-        :param start: start timestamp (ISO)
-        :param end: end timestamp (ISO)
+        :param downlink_start_utc: start timestamp (ISO)
+        :param downlink_end_utc: end timestamp (ISO)
         :return: list of file metadata domain entities
         """
+
+        validate_time_window(downlink_start_utc, downlink_end_utc)
         
-        return self._metadata_repository.get_files_for_slot(instrument, start, end)
+        return self._metadata_repository.get_metadata_for_slot(
+            instrument, 
+            downlink_start_utc, 
+            downlink_end_utc
+        )
     
     def get_metadata_for_active_slot(self, instrument: Instrument, slot_service: SlotService) -> list[FileMetadata]:
         """
@@ -262,7 +271,24 @@ class MetadataService:
         if not slots:
             return 0
         
-        start = min(slot.bot_utc for slot in slots)
-        end = max(slot.eot_utc for slot in slots)
+        downlink_start_utc = min(slot.bot_utc for slot in slots)
+        downlink_end_utc = max(slot.eot_utc for slot in slots)
 
-        return self.sync_metadata(instrument, start, end)
+        return self.sync_metadata(instrument, downlink_start_utc, downlink_end_utc)
+    
+    def get_metadata_for_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[FileMetadata]:
+        """
+        get metadata for the instrument and observation time window
+
+        :param instrument: instrument used for observation
+        :param observation_start_utc: start observation timestamp (ISO) 
+        :param observation_end_utc: end observation timestamp (ISO)
+        :return: list of file metadata domain entities 
+        """
+        validate_time_window(observation_start_utc, observation_end_utc)
+
+        return self._metadata_repository.get_metadata_for_observation(
+            instrument,
+            observation_start_utc,
+            observation_end_utc
+        )

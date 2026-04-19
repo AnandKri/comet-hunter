@@ -394,3 +394,36 @@ class ProcessedFileRepository:
             return []
 
         return [ProcessedFile.from_row(r) for r in result.data]
+    
+    def get_downloaded_files_by_time(self, instrument: Instrument, download_start_utc: str, download_end_utc: str) -> list[ProcessedFile]:
+        """
+        get downloaded files by instrument and download_at time window
+        
+        :param instrument: instrument used for observation
+        :param download_start_utc: start timestamp (ISO)
+        :param download_end_utc: end timestamp (ISO)
+        :return: list of process file entities
+        """
+
+        spec = QuerySpec(
+            sql = f"""
+                    SELECT *
+                    FROM {self.table_name}
+                    WHERE downloaded_at >= ?
+                    AND downloaded_at <= ?
+                    AND instrument = ?
+                    ORDER BY downloaded_at ASC
+                """,
+            operation=OperationType.READ,
+            params=(download_start_utc,
+                    download_end_utc,
+                    instrument.value),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [ProcessedFile.from_row(r) for r in result.data]

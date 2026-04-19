@@ -207,13 +207,13 @@ class FileMetadataRepository:
 
         return result.data is not None
     
-    def get_files_for_slot(self, instrument: Instrument, start: str, end: str) -> list[FileMetadata]:
+    def get_metadata_for_slot(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> list[FileMetadata]:
         """
         Fetch metadata for a specific instrument within a time range
 
         :param instrument: instrument name
-        :param start: start datetime (ISO string)
-        :param end: end datetime (ISO string)
+        :param downlink_start_utc: start datetime (ISO string)
+        :param downlink_end_utc: end datetime (ISO string)
         :return: list of FileMetadata objects
         """
 
@@ -227,7 +227,38 @@ class FileMetadataRepository:
                 ORDER BY last_modified_utc ASC
             """,
             operation=OperationType.READ,
-            params=(instrument.value, start, end),
+            params=(instrument.value, downlink_start_utc, downlink_end_utc),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [FileMetadata.from_row(row) for row in result.data]
+    
+    def get_metadata_for_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[FileMetadata]:
+        """
+        Fetch metadata for a specific instrument within a observation time range
+
+        :param instrument: instrument name
+        :param observation_start_utc: start datetime (ISO string)
+        :param observation_end_utc: end datetime (ISO string)
+        :return: list of FileMetadata objects
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE instrument = ?
+                AND datetime_of_observation >= ?
+                AND datetime_of_observation <= ?
+                ORDER BY datetime_of_observation ASC
+            """,
+            operation=OperationType.READ,
+            params=(instrument.value, observation_start_utc, observation_end_utc),
             fetch=FetchType.ALL
         )
 

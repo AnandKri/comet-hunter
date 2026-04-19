@@ -299,7 +299,7 @@ class DownlinkSlotRepository:
 
         return result.data is not None
     
-    def get_past_slots(self, start: str, end: str) -> list[DownlinkSlot]:
+    def get_past_slots(self, downlink_start_utc: str, downlink_end_utc: str) -> list[DownlinkSlot]:
         """
         Fetch slots overlapping the time window [start, end], excluding future
         or not-yet-activated (PENDING) slots.
@@ -309,19 +309,19 @@ class DownlinkSlotRepository:
         future scheduled (PENDING) slots.
 
         The comparison is performed lexicographically on ISO 8601 UTC strings,
-        so `start` must be in ISO format (e.g. "2026-04-11T12:00:00+00:00").
+        so `downlink_start_utc` must be in ISO format (e.g. "2026-04-11T12:00:00+00:00").
 
-        :param start: Lower bound timestamp (inclusive) in ISO UTC format.
-        :param end: upper bound timestamp (inclusive) in ISO UTC format. 
+        :param downlink_start_utc: Lower bound timestamp (inclusive) in ISO UTC format.
+        :param downlink_end_utc: upper bound timestamp (inclusive) in ISO UTC format. 
         expected to be current timestamp, but could be anything
         :return: List of DownlinkSlot domain entities ordered by `bot_utc`.
         """
 
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+        downlink_start_dt_utc = datetime.fromisoformat(downlink_start_utc)
+        downlink_end_dt_utc = datetime.fromisoformat(downlink_end_utc)
 
-        if start_dt >= end_dt:
-            raise ValueError("`start` must be earlier than `end`")
+        if downlink_start_dt_utc >= downlink_end_dt_utc:
+            raise ValueError("`downlink_start_utc` must be earlier than `downlink_end_utc`")
 
         spec = QuerySpec(
             sql=f"""
@@ -334,8 +334,8 @@ class DownlinkSlotRepository:
             """,
             operation=OperationType.READ,
             params=(
-                end,
-                start,
+                downlink_end_utc,
+                downlink_start_utc,
                 SlotStatus.ACTIVE.value,
                 SlotStatus.DONE.value,
                 SlotStatus.MISSED.value
@@ -379,24 +379,24 @@ class DownlinkSlotRepository:
 
         return DownlinkSlot.from_row(result.data)
     
-    def get_future_slots(self, start: str, end: str) -> list[DownlinkSlot]:
+    def get_future_slots(self, downlink_start_utc: str, downlink_end_utc: str) -> list[DownlinkSlot]:
         """
-        Fetch upcoming slots within time window (start, end].
+        Fetch upcoming slots within time window (downlink_start_utc, downlink_end_utc].
 
         A slot is considered upcoming if:
         - status = PENDING
         - bot_utc > start
         - bot_utc <= end
 
-        :param start: starting timestamp (ISO UTC) (expected to be current timestamp)
-        :param end: Upper bound timestamp (ISO UTC)
+        :param downlink_start_utc: starting timestamp (ISO UTC) (expected to be current timestamp)
+        :param downlink_end_utc: Upper bound timestamp (ISO UTC)
         :return: List of upcoming DownlinkSlot entities ordered by `bot_utc`
         """
 
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+        downlink_start_dt_utc = datetime.fromisoformat(downlink_start_utc)
+        downlink_end_dt_utc = datetime.fromisoformat(downlink_end_utc)
 
-        if start_dt >= end_dt:
+        if downlink_start_dt_utc >= downlink_end_dt_utc:
             raise ValueError("`start` must be earlier than `end`")
 
         spec = QuerySpec(
@@ -411,8 +411,8 @@ class DownlinkSlotRepository:
             operation=OperationType.READ,
             params=(
                 SlotStatus.PENDING.value,
-                start,
-                end
+                downlink_start_utc,
+                downlink_end_utc
             ),
             fetch=FetchType.ALL
         )

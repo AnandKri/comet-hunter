@@ -10,6 +10,7 @@ from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.database.domain.file_metadata import FileMetadata
 from backend.util.enums import FileStatus, Instrument
 from backend.util.constants import Url
+from backend.util.funcs import validate_time_window
 from backend.services.metadata_service import MetadataService
 
 class DownloadFileService:
@@ -48,28 +49,70 @@ class DownloadFileService:
         if not slots:
             return 0
         
-        start = min(slot.bot_utc for slot in slots)
-        end = max(slot.eot_utc for slot in slots)
-        
-        return self.download_files(instrument, start, end)
-    
-    def download_files(self, instrument: Instrument, start: str, end: str) -> int:
-        """
-        Download files within a given time frame and instrument.
+        downlink_start_utc = min(slot.bot_utc for slot in slots)
+        downlink_end_utc = max(slot.eot_utc for slot in slots)
 
-        :param instrument: Instrument used for observation
-        :param start: start timestamp (ISO)
-        :param end: end timestamp (ISO)
-        :return: number of files downloaded successfully.
-        """
-
-        metadata_files = self._metadata_service.get_metadata(instrument, start, end)
+        metadata_files = self._metadata_service.get_metadata_for_downlink(instrument, downlink_start_utc, downlink_end_utc)
 
         files = self._get_files_to_download(metadata_files)
         if not files:
             return 0
         
         return self._parallel_download(files)
+    
+    def download_files_for_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> int:
+        """
+        Download files within a given downlink time frame and instrument.
+
+        :param instrument: Instrument used for observation
+        :param downlink_start_utc: start timestamp (ISO)
+        :param downlink_end_utc: end timestamp (ISO)
+        :return: number of files downloaded successfully.
+        """
+
+        validate_time_window(downlink_start_utc, downlink_end_utc)
+
+        metadata_files = self._metadata_service.get_metadata_for_downlink(instrument, downlink_start_utc, downlink_end_utc)
+
+        files = self._get_files_to_download(metadata_files)
+        if not files:
+            return 0
+        
+        return self._parallel_download(files)
+    
+    def download_files_for_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> int:
+        """
+        download files within an observation time period and instrument.
+
+        :param instrument: Instrument used for observation
+        :param observation_start_utc: start timestamp (ISO)
+        :param observation_end_utc: end timestamp (ISO)
+        :return: number of files downloaded successfully.
+        """
+
+        validate_time_window(observation_start_utc, observation_end_utc)
+
+        metadata_files = self._metadata_service.get_metadata_for_observation(instrument, observation_start_utc, observation_end_utc)
+
+        files = self._get_files_to_download(metadata_files)
+        if not files:
+            return 0
+        
+        return self._parallel_download(files)
+    
+    def get_downloaded_files_by_time(self, instrument: Instrument, download_start_utc: str, download_end_utc: str) -> list[ProcessedFile]:
+        """
+        returns downloaded files between a time window
+
+        :param instrument: instrument used for observation
+        :param download_start_utc: start timestamp (ISO)
+        :param download_end_utc: end timestamp (ISO)
+        :return: list of process file entities
+        """
+
+        validate_time_window(download_start_utc, download_end_utc)
+
+        return self._processed_repository.get_downloaded_files_by_time(instrument, download_start_utc, download_end_utc)
     
     def _get_files_to_download(self, metadata_files: List[FileMetadata]) -> List[ProcessedFile]:
         """
