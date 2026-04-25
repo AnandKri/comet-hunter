@@ -124,7 +124,8 @@ CREATE TABLE processed_file (
 
     processed_at TEXT,
     last_processing_attempt_at TEXT,
-    processing_attempt_count INTEGER NOT NULL DEFAULT 0
+    processing_attempt_count INTEGER NOT NULL DEFAULT 0,
+    previous_file_name TEXT
 );
 ```
 
