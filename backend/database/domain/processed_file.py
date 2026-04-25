@@ -30,6 +30,7 @@ class ProcessedFile:
         processed_at: UTC timestamp when processing completed.
         last_processing_attempt_at: UTC timestamp of the most recent processing attempt.
         processing_attempt_count: Number of processing attempts made.
+        previous_file_name: previous file name which will help in processing
 
     Invariants:
         - status value is one of the FileStatus enums
@@ -52,6 +53,7 @@ class ProcessedFile:
     processed_at: Optional[str]
     last_processing_attempt_at: Optional[str]
     processing_attempt_count: int
+    previous_file_name: Optional[str]
 
     VALID_TRANSITIONS = {
         FileStatus.DISCOVERED: {FileStatus.DOWNLOADING,
@@ -117,37 +119,19 @@ class ProcessedFile:
     
     def can_retry_processing(self, max_processing_attempts: int) -> bool:
         """
-        Determines whether processing can be retried based on
-        attempt limits and current status.
-
+        Determines whether processing can be retried based on attempt limits
         :param max_processing_attempts: Maximum allowed processing attempts.
-
-        :returns: True if processing retry is allowed.
-        False otherwise.
+        :returns: True if processing retry is allowed False otherwise.
         """
-        return (
-            self.processing_attempt_count < max_processing_attempts
-            and self.status in {
-                FileStatus.PROCESSING_FAILED
-            }
-        )
+        return (self.processing_attempt_count < max_processing_attempts)
     
     def can_retry_downloading(self, max_downloading_attempts: int) -> bool:
         """
-        Determines whether downloading can be retried based on
-        attempt limits and current status.
-
+        Determines whether downloading can be retried based on attempt limits
         :param max_downloading_attempts: Maximum allowed download attempts.
-
-        :return: True if download retry is allowed.
-        False otherwise.
+        :return: True if download retry is allowed False otherwise.
         """
-        return (
-            self.downloading_attempt_count < max_downloading_attempts
-            and self.status in {
-                FileStatus.DOWNLOADING_FAILED
-            }
-        )
+        return (self.downloading_attempt_count < max_downloading_attempts)
     
     def is_download_complete(self) -> bool:
         """
@@ -200,5 +184,6 @@ class ProcessedFile:
             downloading_attempt_count=row["downloading_attempt_count"],
             processed_at=row["processed_at"],
             last_processing_attempt_at=row["last_processing_attempt_at"],
-            processing_attempt_count=row["processing_attempt_count"]
+            processing_attempt_count=row["processing_attempt_count"],
+            previous_file_name=row["previous_file_name"]
         )
