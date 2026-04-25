@@ -207,7 +207,7 @@ class FileMetadataRepository:
 
         return result.data is not None
     
-    def get_metadata_for_slot(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> list[FileMetadata]:
+    def get_metadata_by_slot(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> list[FileMetadata]:
         """
         Fetch metadata for a specific instrument within a time range
 
@@ -238,7 +238,7 @@ class FileMetadataRepository:
 
         return [FileMetadata.from_row(row) for row in result.data]
     
-    def get_metadata_for_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[FileMetadata]:
+    def get_metadata_by_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[FileMetadata]:
         """
         Fetch metadata for a specific instrument within a observation time range
 
