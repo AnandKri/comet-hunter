@@ -17,7 +17,7 @@ Establish a restartable, correct ingestion skeleton.
 
 ---
 
-### Phase 2 — Metadata & Download Integrity (In Progress)
+### Phase 2 — Metadata & Download Integrity (Implemented)
 
 - Remote metadata polling
 - Unique file discovery
@@ -30,7 +30,7 @@ Achieve deterministic, idempotent file acquisition.
 
 ---
 
-### Phase 3 — Processing Pipeline
+### Phase 3 — Processing Pipeline (In Progress)
 
 - FITS ingestion
 - Frame normalization
