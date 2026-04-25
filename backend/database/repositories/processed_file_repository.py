@@ -1,6 +1,6 @@
 from backend.util.constants import DB
 from backend.util.enums import FileStatus, FetchType, OperationType, Instrument
-from typing import Optional, ClassVar
+from typing import Optional, ClassVar, Literal
 from backend.database.domain.processed_file import ProcessedFile
 from backend.database.infrastructure.query_spec import QuerySpec
 from backend.database.infrastructure.query_executor import QueryExecutor
@@ -45,7 +45,8 @@ class ProcessedFileRepository:
                 downloading_attempt_count INTEGER NOT NULL DEFAULT 0,
                 processed_at TEXT,
                 last_processing_attempt_at TEXT,
-                processing_attempt_count INTEGER NOT NULL DEFAULT 0
+                processing_attempt_count INTEGER NOT NULL DEFAULT 0,
+                previous_file_name TEXT
             )
         """
     
@@ -79,7 +80,8 @@ class ProcessedFileRepository:
                     downloading_attempt_count: int,
                     processed_at: Optional[str],
                     last_processing_attempt_at: Optional[str],
-                    processing_attempt_count: int) -> bool:
+                    processing_attempt_count: int,
+                    previous_file_name: Optional[str]) -> bool:
         """
         Checks if file status is valid or not.
         creates the file details to a row in the table
@@ -102,6 +104,7 @@ class ProcessedFileRepository:
         :param processed_at: UTC timestamp when processing completed.
         :param last_processing_attempt_at: UTC timestamp of the most recent processing attempt.
         :param processing_attempt_count: Number of processing attempts made.
+        :param previous_file_name: previous file name which will help with processing
         :return: Returns True only if the number of created rows is 1
         """
         
@@ -130,8 +133,9 @@ class ProcessedFileRepository:
                 downloading_attempt_count,
                 processed_at,
                 last_processing_attempt_at,
-                processing_attempt_count)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                processing_attempt_count,
+                previous_file_name)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             operation=OperationType.WRITE,
             params=(
@@ -152,7 +156,8 @@ class ProcessedFileRepository:
                     downloading_attempt_count,
                     processed_at,
                     last_processing_attempt_at,
-                    processing_attempt_count
+                    processing_attempt_count,
+                    previous_file_name
                 )
         )
         
@@ -229,7 +234,8 @@ class ProcessedFileRepository:
                     processed_file_size = ?,
                     processed_at = ?,
                     last_processing_attempt_at = ?,
-                    processing_attempt_count = ?
+                    processing_attempt_count = ?,
+                    previous_file_name = ?
                 WHERE raw_file_name = ?
             """,
             operation=OperationType.WRITE,
@@ -246,6 +252,7 @@ class ProcessedFileRepository:
                 file.processed_at,
                 file.last_processing_attempt_at,
                 file.processing_attempt_count,
+                file.previous_file_name,
                 file.raw_file_name
             )
         )
@@ -277,114 +284,50 @@ class ProcessedFileRepository:
 
         return result.data is not None
 
-    def claim_next_ready(self) -> Optional[ProcessedFile]:
+    def get_files_by_status(self, 
+                            instrument: Instrument, 
+                            status: FileStatus, 
+                            order_by: Literal[
+                                "datetime_of_observation",
+                                "downloaded_at",
+                                "last_downloading_attempt_at",
+                                "processed_at",
+                                "last_processing_attempt_at"
+                            ], 
+                            ascending: bool = True) -> list[ProcessedFile]:
         """
-        Claims next READY file for processing.
-        :return: Next file to process or None.
+        Fetch files by status
+        
+        :param instrument: instrument used for observation
+        :param status: status of the file
+        :param order_by: column used for sorting
+        :param ascending: boolean, to set the sorting order 
+        :return: list of files domian entity
         """
+
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be Instrument enum")
+
+        if not isinstance(status, FileStatus):
+            raise ValueError("status must be FileStatus enum")
+        
+        sql = f"""
+            SELECT *
+            FROM {self.table_name}
+            WHERE instrument = ?
+            AND status = ?
+        """
+
+        params = (instrument.value, status.value)
+
+        if order_by:
+            direction = "ASC" if ascending else "DESC"
+            sql += f" ORDER BY {order_by} {direction}"
 
         spec = QuerySpec(
-            sql=f"""
-                SELECT *
-                FROM {self.table_name}
-                WHERE status = ?
-                ORDER BY last_processing_attempt_at ASC
-                LIMIT 1
-            """,
+            sql = sql,
             operation=OperationType.READ,
-            params=(FileStatus.READY.value,),
-            fetch=FetchType.ONE
-        )
-
-        result = self._executor.execute(spec)
-
-        if not result.data:
-            return None
-
-        return ProcessedFile.from_row(result.data)
-
-    def get_retryable_process(self) -> list[ProcessedFile]:
-        """
-        Fetch files eligible for processing retry.
-
-        :return: Retryable files.
-        """
-
-        spec = QuerySpec(
-            sql=f"""
-                SELECT *
-                FROM {self.table_name}
-                WHERE status = ?
-                AND processing_attempt_count < ?
-                ORDER BY last_processing_attempt_at ASC
-            """,
-            operation=OperationType.READ,
-            params=(
-                FileStatus.PROCESSING_FAILED.value,
-                self.max_processing_attempts
-            ),
-            fetch=FetchType.ALL
-        )
-
-        result = self._executor.execute(spec)
-
-        if not result.data:
-            return []
-
-        return [
-            ProcessedFile.from_row(row)
-            for row in result.data
-        ]
-    
-    def get_retryable_download(self) -> list[ProcessedFile]:
-        """
-        Fetch files eligible for download retry.
-
-        :return: Retryable files.
-        """
-
-        spec = QuerySpec(
-            sql=f"""
-                SELECT *
-                FROM {self.table_name}
-                WHERE status = ?
-                AND downloading_attempt_count < ?
-                ORDER BY last_downloading_attempt_at ASC
-            """,
-            operation=OperationType.READ,
-            params=(
-                FileStatus.DOWNLOADING_FAILED.value,
-                self.max_downloading_attempts
-            ),
-            fetch=FetchType.ALL
-        )
-
-        result = self._executor.execute(spec)
-
-        if not result.data:
-            return []
-
-        return [
-            ProcessedFile.from_row(row)
-            for row in result.data
-        ]
-    
-    def get_ready_files(self) -> list[ProcessedFile]:
-        """
-        Fetch files ready for processing
-
-        :return: list of files in `READY` state
-        """
-
-        spec = QuerySpec(
-            sql = f"""
-                    SELECT *
-                    FROM {self.table_name}
-                    WHERE status = ?
-                    ORDER BY last_processing_attempt_at ASC
-                """,
-            operation=OperationType.READ,
-            params=(FileStatus.READY.value,),
+            params=params,
             fetch=FetchType.ALL
         )
 
@@ -418,6 +361,80 @@ class ProcessedFileRepository:
             params=(download_start_utc,
                     download_end_utc,
                     instrument.value),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [ProcessedFile.from_row(r) for r in result.data]
+    
+    def get_files_by_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[ProcessedFile]:
+        """
+        Returns files within a observation period and instrument
+
+        :param instrument: Instrument used for observation
+        :param observation_start_utc: starting utc timestamp of observation
+        :param observation_end_utc: ending utc timestamp of observation
+        :return: list of processed file domain entities
+        """
+
+        spec = QuerySpec(
+            sql = f"""
+                    SELECT *
+                    FROM {self.table_name}
+                    WHERE datetime_of_observation >= ?
+                    AND datetime_of_observation <= ?
+                    AND instrument = ?
+                    ORDER BY datetime_of_observation ASC
+                """,
+            operation=OperationType.READ,
+            params=(observation_start_utc,
+                    observation_end_utc,
+                    instrument.value),
+            fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [ProcessedFile.from_row(r) for r in result.data]
+    
+    def get_files_by_observation_and_status(self, 
+                                            instrument: Instrument, 
+                                            status: FileStatus,
+                                            observation_start_utc: str,
+                                            observation_end_utc: str) -> list[ProcessedFile]:
+        
+        """
+        returns files for a given observation time preiod and status
+
+        :param instrument: Instrument used for observation
+        :param status: file status
+        :param observation_start_utc: starting utc timestamp of observation
+        :param observation_end_utc: ending utc timestamp of observation
+        :return: list of processed file domain entities 
+        """
+
+        spec = QuerySpec(
+            sql = f"""
+                    SELECT *
+                    FROM {self.table_name}
+                    WHERE datetime_of_observation >= ?
+                    AND datetime_of_observation <= ?
+                    AND instrument = ?
+                    AND status = ?
+                    ORDER BY datetime_of_observation ASC
+                """,
+            operation=OperationType.READ,
+            params=(observation_start_utc,
+                    observation_end_utc,
+                    instrument.value,
+                    status.value),
             fetch=FetchType.ALL
         )
 
