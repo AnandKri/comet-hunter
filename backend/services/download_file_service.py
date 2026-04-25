@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Optional
 from dataclasses import replace
 import requests
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from backend.database.repositories.processed_file_repository import ProcessedFileRepository
 from backend.database.domain.processed_file import ProcessedFile
@@ -22,6 +22,8 @@ class DownloadFileService:
     - managing download retries
     """
 
+    DOWNLOADING_TIMEOUT = timedelta(minutes=5)
+
     def __init__(self, 
                  processed_repository: ProcessedFileRepository,
                  metadata_service: MetadataService,
@@ -32,7 +34,41 @@ class DownloadFileService:
         self._download_directory = download_directory
         self._max_workers = max_workers
     
-    def download_files_for_slots(self, instrument: Instrument, slots: List[DownlinkSlot]) -> int:
+    def recover_stale_files(self, now_utc: str, instrument: Instrument) -> int:
+        """
+        Recovers files stuck in intermediate states `DOWNLOADING`
+        by marking them as failed if they exceed allowed timeout.
+
+        :param now_utc: current UTC timestamp (ISO format)
+        :return: number of files recovered.
+        """
+
+        now_dt = datetime.fromisoformat(now_utc)
+
+        recovered_count = 0
+
+        downloading_files = self._processed_repository.get_files_by_status(instrument, status=FileStatus.DOWNLOADING, order_by='last_downloading_attempt_at')
+
+        for file in downloading_files:
+            if not file.last_downloading_attempt_at:
+                continue
+            last_attempt_dt = datetime.fromisoformat(file.last_downloading_attempt_at)
+            if now_dt - last_attempt_dt > self.DOWNLOADING_TIMEOUT:
+                try:
+                    updated = file.transition_to(FileStatus.DOWNLOADING_FAILED)
+                    updated = replace(
+                        updated,
+                        error_message="Recovered: download timeout",
+                        downloading_attempt_count=file.downloading_attempt_count + 1,
+                        last_downloading_attempt_at=now_utc
+                    )
+                    if self._processed_repository.save(updated):
+                        recovered_count += 1
+                except ValueError:
+                    pass
+        return recovered_count
+
+    def download_files_by_slots(self, instrument: Instrument, slots: List[DownlinkSlot]) -> int:
         """
         Downloads files corresponding to slots and given instrument.
 
@@ -52,7 +88,7 @@ class DownloadFileService:
         downlink_start_utc = min(slot.bot_utc for slot in slots)
         downlink_end_utc = max(slot.eot_utc for slot in slots)
 
-        metadata_files = self._metadata_service.get_metadata_for_downlink(instrument, downlink_start_utc, downlink_end_utc)
+        metadata_files = self._metadata_service.get_metadata_by_downlink(instrument, downlink_start_utc, downlink_end_utc)
 
         files = self._get_files_to_download(metadata_files)
         if not files:
@@ -60,7 +96,7 @@ class DownloadFileService:
         
         return self._parallel_download(files)
     
-    def download_files_for_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> int:
+    def download_files_by_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> int:
         """
         Download files within a given downlink time frame and instrument.
 
@@ -72,7 +108,7 @@ class DownloadFileService:
 
         validate_time_window(downlink_start_utc, downlink_end_utc)
 
-        metadata_files = self._metadata_service.get_metadata_for_downlink(instrument, downlink_start_utc, downlink_end_utc)
+        metadata_files = self._metadata_service.get_metadata_by_downlink(instrument, downlink_start_utc, downlink_end_utc)
 
         files = self._get_files_to_download(metadata_files)
         if not files:
@@ -80,7 +116,7 @@ class DownloadFileService:
         
         return self._parallel_download(files)
     
-    def download_files_for_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> int:
+    def download_files_by_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> int:
         """
         download files within an observation time period and instrument.
 
@@ -92,7 +128,7 @@ class DownloadFileService:
 
         validate_time_window(observation_start_utc, observation_end_utc)
 
-        metadata_files = self._metadata_service.get_metadata_for_observation(instrument, observation_start_utc, observation_end_utc)
+        metadata_files = self._metadata_service.get_metadata_by_observation(instrument, observation_start_utc, observation_end_utc)
 
         files = self._get_files_to_download(metadata_files)
         if not files:
@@ -118,7 +154,7 @@ class DownloadFileService:
         """
         Convert metadata into ProcessedFile entities and filter
         eligible files for download
-
+        
         Includes:
             - new files (not in DB)
             - retryable failed downloads
@@ -151,7 +187,8 @@ class DownloadFileService:
                     downloading_attempt_count=0,
                     processed_at=None,
                     last_processing_attempt_at=None,
-                    processing_attempt_count=0
+                    processing_attempt_count=0,
+                    previous_file_name=None
                 )
 
                 self._processed_repository.create_file(**file.__dict__)
@@ -199,7 +236,10 @@ class DownloadFileService:
 
         try:
             file = file.transition_to(FileStatus.DOWNLOADING)
+            file = replace(file,
+                           last_downloading_attempt_at = datetime.now(UTC).isoformat())
             self._processed_repository.save(file)
+            
             obs_date = datetime.fromisoformat(
                 file.datetime_of_observation
                 ).date().isoformat()
@@ -209,8 +249,10 @@ class DownloadFileService:
             
             local_path = file.raw_file_path
             self._download(download_url, local_path)
+            
             file = file.transition_to(FileStatus.DOWNLOADED)
-            file = replace(file, downloaded_at=datetime.now(UTC).isoformat())
+            file = replace(file, 
+                           downloaded_at=datetime.now(UTC).isoformat())
             self._processed_repository.save(file)
             
             return True
@@ -219,9 +261,7 @@ class DownloadFileService:
             file = file.transition_to(FileStatus.DOWNLOADING_FAILED)
             file = replace(file,
                            error_message=str(e),
-                           last_downloading_attempt_at = datetime.now(UTC).isoformat(),
                            downloading_attempt_count = file.downloading_attempt_count + 1)
-            
             self._processed_repository.save(file)
             return False
     
