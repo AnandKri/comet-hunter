@@ -1,4 +1,4 @@
-# Comet Hunter (work in progress)
+# Comet Hunter
 
 Comet Hunter is a deterministic ingestion and processing pipeline for LASCO image streams, designed to enable reliable visualization of faint moving sungrazing comets.
 
