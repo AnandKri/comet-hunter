@@ -65,7 +65,7 @@ def test_full_pipeline():
     use_slots = active_slot is not None
 
     if use_slots:
-        metadata_inserted = metadata_service.sync_metadata_for_slots(
+        metadata_inserted = metadata_service.sync_metadata_by_slots(
             instrument=Instrument.C3,
             slots=[active_slot]
         )
@@ -80,12 +80,12 @@ def test_full_pipeline():
     assert metadata_inserted >= 0
     
     if use_slots:
-        downloaded = download_service.download_files_for_slots(
+        downloaded = download_service.download_files_by_slots(
             instrument=Instrument.C3,
             slots=[active_slot]
         )
     else:
-        downloaded = download_service.download_files_for_observation(
+        downloaded = download_service.download_files_by_observation(
             instrument=Instrument.C3,
             observation_start_utc=observation_start,
             observation_end_utc=observation_end

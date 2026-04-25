@@ -45,8 +45,7 @@ def test_download_service():
 
     assert isinstance(inserted, int)
     assert inserted >= 0
-    
-    downloaded = download_service.download_files_for_observation(
+    downloaded = download_service.download_files_by_observation(
         Instrument.C3,
         observation_start_utc=start,
         observation_end_utc=end

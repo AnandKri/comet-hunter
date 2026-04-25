@@ -4,7 +4,6 @@ from backend.database.repositories.file_metadata_repository import FileMetadataR
 from backend.services.metadata_service import MetadataService
 from backend.database.domain.file_metadata import FileMetadata
 from backend.util.enums import Instrument
-
 from datetime import datetime, timedelta, UTC
 import pytest
 
@@ -29,8 +28,7 @@ def test_metadata_service():
     )
     assert isinstance(inserted, int)
     assert inserted >= 0
-
-    data_downlink = metadata_service.get_metadata_for_downlink(
+    data_downlink = metadata_service.get_metadata_by_downlink(
         Instrument.C3,
         start,
         end
@@ -40,7 +38,7 @@ def test_metadata_service():
     for item in data_downlink:
         assert isinstance(item, FileMetadata)
 
-    data_obs = metadata_service.get_metadata_for_observation(
+    data_obs = metadata_service.get_metadata_by_observation(
         Instrument.C3,
         start,
         end
