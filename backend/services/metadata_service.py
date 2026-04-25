@@ -204,7 +204,7 @@ class MetadataService:
 
         return result
     
-    def get_metadata_for_slots(self, instrument: Instrument, slots: list[DownlinkSlot]) -> list[FileMetadata]:
+    def get_metadata_by_slots(self, instrument: Instrument, slots: list[DownlinkSlot]) -> list[FileMetadata]:
         """
         returns files metadata entities for a given slot and instrument
 
@@ -219,13 +219,13 @@ class MetadataService:
         downlink_start_utc = min(slot.bot_utc for slot in slots)
         downlink_end_utc = max(slot.eot_utc for slot in slots)
         
-        return self._metadata_repository.get_metadata_for_slot(
+        return self._metadata_repository.get_metadata_by_slot(
             instrument=instrument,
             downlink_start_utc=downlink_start_utc,
             downlink_end_utc=downlink_end_utc
         )
     
-    def get_metadata_for_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> List[FileMetadata]:
+    def get_metadata_by_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> List[FileMetadata]:
         """
         returns file metadata for a given time window and instrument
 
@@ -237,13 +237,13 @@ class MetadataService:
 
         validate_time_window(downlink_start_utc, downlink_end_utc)
         
-        return self._metadata_repository.get_metadata_for_slot(
+        return self._metadata_repository.get_metadata_by_slot(
             instrument, 
             downlink_start_utc, 
             downlink_end_utc
         )
     
-    def get_metadata_for_active_slot(self, instrument: Instrument, slot_service: SlotService) -> list[FileMetadata]:
+    def get_metadata_by_active_slot(self, instrument: Instrument, slot_service: SlotService) -> list[FileMetadata]:
         """
         Fetch metadata for current active slot.
 
@@ -257,9 +257,9 @@ class MetadataService:
         if not slot:
             return []
         
-        return self.get_metadata_for_slots(slot, instrument)
+        return self.get_metadata_by_slots(slot, instrument)
     
-    def sync_metadata_for_slots(self, instrument: Instrument, slots: list[DownlinkSlot]) -> int:
+    def sync_metadata_by_slots(self, instrument: Instrument, slots: list[DownlinkSlot]) -> int:
         """
         Sync metadata for given slots. takes start date of earliest slot and end date of latest slot. 
 
@@ -276,7 +276,7 @@ class MetadataService:
 
         return self.sync_metadata(instrument, downlink_start_utc, downlink_end_utc)
     
-    def get_metadata_for_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[FileMetadata]:
+    def get_metadata_by_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[FileMetadata]:
         """
         get metadata for the instrument and observation time window
 
@@ -287,7 +287,7 @@ class MetadataService:
         """
         validate_time_window(observation_start_utc, observation_end_utc)
 
-        return self._metadata_repository.get_metadata_for_observation(
+        return self._metadata_repository.get_metadata_by_observation(
             instrument,
             observation_start_utc,
             observation_end_utc
