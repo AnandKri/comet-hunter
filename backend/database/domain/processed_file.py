@@ -123,7 +123,7 @@ class ProcessedFile:
         :param max_processing_attempts: Maximum allowed processing attempts.
         :returns: True if processing retry is allowed False otherwise.
         """
-        return (self.processing_attempt_count < max_processing_attempts)
+        return (self.status == FileStatus.PROCESSING_FAILED) and (self.processing_attempt_count < max_processing_attempts)
     
     def can_retry_downloading(self, max_downloading_attempts: int) -> bool:
         """
@@ -131,7 +131,7 @@ class ProcessedFile:
         :param max_downloading_attempts: Maximum allowed download attempts.
         :return: True if download retry is allowed False otherwise.
         """
-        return (self.downloading_attempt_count < max_downloading_attempts)
+        return (self.status == FileStatus.DOWNLOADING_FAILED) and (self.downloading_attempt_count < max_downloading_attempts)
     
     def is_download_complete(self) -> bool:
         """
