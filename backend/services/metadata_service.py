@@ -292,3 +292,13 @@ class MetadataService:
             observation_start_utc,
             observation_end_utc
         )
+    
+    def read_metadata(self, raw_file_name: str) -> Optional[FileMetadata]:
+        """
+        Fetch metadata using raw file name
+
+        :param raw_file_name: raw file name primary key
+        :return: returns complete file metadata 
+        """
+
+        return self._metadata_repository.read_metadata(raw_file_name)
