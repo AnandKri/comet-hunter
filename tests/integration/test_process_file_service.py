@@ -1,33 +1,37 @@
 from pathlib import Path
 from datetime import datetime, timedelta, UTC
+
 from backend.database.infrastructure.bootstrap import bootstrap_database
 from backend.database.infrastructure.query_executor import QueryExecutor
-from backend.database.repositories.downlink_slot_repository import DownlinkSlotRepository
-from backend.database.repositories.file_metadata_repository import FileMetadataRepository
+
 from backend.database.repositories.processed_file_repository import ProcessedFileRepository
-from backend.database.domain.downlink_slot import DownlinkSlot
-from backend.database.domain.processed_file import ProcessedFile
-from backend.services.slot_service import SlotService
+from backend.database.repositories.file_metadata_repository import FileMetadataRepository
+from backend.database.repositories.downlink_slot_repository import DownlinkSlotRepository
+
 from backend.services.metadata_service import MetadataService
 from backend.services.download_file_service import DownloadFileService
 from backend.services.process_file_service import ProcessFileService
+from backend.services.slot_service import SlotService
+
+from backend.database.domain.processed_file import ProcessedFile
 from backend.util.enums import Instrument, FileStatus
+
 import pytest
 
 pytestmark = pytest.mark.integration
 
 
-def test_full_pipeline():
+def test_process_file_service():
     bootstrap_database()
 
     executor = QueryExecutor()
-    
-    slot_repo = DownlinkSlotRepository(executor)
-    metadata_repo = FileMetadataRepository(executor)
+
     processed_repo = ProcessedFileRepository(executor)
-    
-    slot_service = SlotService(slot_repo)
+    metadata_repo = FileMetadataRepository(executor)
+    slot_repo = DownlinkSlotRepository(executor)
+
     metadata_service = MetadataService(metadata_repo)
+    slot_service = SlotService(slot_repo)
 
     raw_dir = Path("./data/raw")
     processed_dir = Path("./data/processed")
@@ -50,44 +54,31 @@ def test_full_pipeline():
     )
 
     now = datetime.now(UTC)
-
     observation_start = (now - timedelta(hours=8)).isoformat()
     observation_end = now.isoformat()
 
-    slots_added = slot_service.sync_slots()
-    active_slot = slot_service.sync_and_get_active_slot()
-    
-    assert isinstance(slots_added, int)
-    assert slots_added > 0
-
     last_slot = slot_service.get_past_slots(
-        downlink_start_utc=(now - timedelta(hours=24)).isoformat(),
+        downlink_start_utc=(now-timedelta(hours=24)).isoformat(),
         downlink_end_utc=now.isoformat()
-    )[-1]
-
-    metadata_inserted = metadata_service.sync_metadata(
-        instrument=Instrument.C3,
-        downlink_start_utc=last_slot.bot_utc,
-        downlink_end_utc=last_slot.eot_utc
+        )[-1]
+    
+    metadata_service.sync_metadata(
+        Instrument.C3,
+        last_slot.bot_utc,
+        last_slot.eot_utc
     )
 
-    assert isinstance(metadata_inserted, int)
-
-    downloaded = download_service.download_files_by_observation(
-        instrument=Instrument.C3,
+    download_service.download_files_by_observation(
+        Instrument.C3,
         observation_start_utc=observation_start,
         observation_end_utc=observation_end
     )
 
-    assert isinstance(downloaded, int)
-
     files = download_service.get_downloaded_files_by_time(
-        instrument=Instrument.C3,
+        Instrument.C3,
         download_start_utc=observation_start,
         download_end_utc=datetime.now(UTC).isoformat()
     )
-
-    assert isinstance(files, list)
 
     ready_count = process_service.mark_ready_files_for_processing(
         instrument=Instrument.C3,
@@ -96,6 +87,7 @@ def test_full_pipeline():
     )
 
     assert isinstance(ready_count, int)
+    assert ready_count >= 0
 
     processed = process_service.process_pending_files(
         instrument=Instrument.C3,
@@ -104,13 +96,16 @@ def test_full_pipeline():
     )
 
     assert isinstance(processed, int)
+    assert processed > 0
 
     processed_files = processed_repo.get_files_by_observation_and_status(
-        instrument=Instrument.C3,
+        Instrument.C3,
         status=FileStatus.PROCESSED,
         observation_start_utc=observation_start,
         observation_end_utc=observation_end
     )
+
+    assert len(processed_files) > 0
 
     for file in processed_files:
         assert isinstance(file, ProcessedFile)
