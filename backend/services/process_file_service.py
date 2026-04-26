@@ -2,11 +2,16 @@ from pathlib import Path
 from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from backend.database.repositories.processed_file_repository import ProcessedFileRepository
+from backend.services.metadata_service import MetadataService
 from backend.database.domain.processed_file import ProcessedFile
 from backend.util.enums import FileStatus, Instrument
 from backend.util.funcs import validate_time_window
 from dataclasses import replace
 from datetime import datetime, timedelta
+import numpy as np
+from scipy.signal import medfilt2d
+from sunpy.map import Map
+import matplotlib.pyplot as plt
 
 class ProcessFileService:
     """
@@ -22,11 +27,13 @@ class ProcessFileService:
     MAX_OBSERVATION_GAP = timedelta(minutes=16)
     PROCESSING_TIMEOUT = timedelta(minutes=5)
 
-    def __init__(self, 
+    def __init__(self,
                  processed_repository: ProcessedFileRepository,
+                 metadata_service: MetadataService,
                  processed_directory: Path,
                  max_workers: int = 4):
         self._processed_repository = processed_repository
+        self._metadata_service = metadata_service
         self._processed_directory = processed_directory
         self._max_workers = max_workers
     
@@ -107,37 +114,42 @@ class ProcessFileService:
         """
 
         validate_time_window(observation_start_utc, observation_end_utc)
-        
-        observation_start_datetime = datetime.fromisoformat(observation_start_utc)
-        fetch_start_time = (observation_start_datetime - self.LOOKBACK_BUFFER).isoformat()
-
-        files: List[ProcessedFile] = self._processed_repository.get_files_by_observation(
-            instrument, 
-            fetch_start_time,
-            observation_end_utc
-        )
-
-        prev = None
         updated_count = 0
-        for file in files:
-            file_observation_datetime = datetime.fromisoformat(file.datetime_of_observation)
-            if (file_observation_datetime >= observation_start_datetime) and (file.status == FileStatus.DOWNLOADED):
-                if prev:
-                    observation_difference = file_observation_datetime - prev_observation_datetime
-                    if  self.MIN_OBSERVATION_GAP <= observation_difference <= self.MAX_OBSERVATION_GAP:
-                        try:
-                            updated_file = file.transition_to(FileStatus.READY)
-                            updated_file = replace(
-                                updated_file,
-                                previous_file_name=prev.raw_file_name
-                            )
-                            if self._processed_repository.save(updated_file):
-                                updated_count += 1
-                        except ValueError:
-                            pass
-            if file.status in [FileStatus.DOWNLOADED, FileStatus.PROCESSED, FileStatus.READY]:
-                prev = file
-                prev_observation_datetime = file_observation_datetime
+
+        if instrument == Instrument.C2:
+            files = self._processed_repository.get_files_by_observation(instrument, observation_start_utc, observation_end_utc)
+            for file in files:
+                if file.status == FileStatus.DOWNLOADED:
+                    try:
+                        updated_file = file.transition_to(FileStatus.READY)
+                        if self._processed_repository.save(updated_file):
+                            updated_count += 1
+                    except ValueError:
+                        pass
+        else:
+            observation_start_datetime = datetime.fromisoformat(observation_start_utc)
+            fetch_start_time = (observation_start_datetime - self.LOOKBACK_BUFFER).isoformat()
+            files = self._processed_repository.get_files_by_observation(instrument, fetch_start_time,observation_end_utc)
+            prev = None
+            for file in files:
+                file_observation_datetime = datetime.fromisoformat(file.datetime_of_observation)
+                if (file_observation_datetime >= observation_start_datetime) and (file.status == FileStatus.DOWNLOADED):
+                    if prev:
+                        observation_difference = file_observation_datetime - prev_observation_datetime
+                        if  self.MIN_OBSERVATION_GAP <= observation_difference <= self.MAX_OBSERVATION_GAP:
+                            try:
+                                updated_file = file.transition_to(FileStatus.READY)
+                                updated_file = replace(
+                                    updated_file,
+                                    previous_file_name=prev.raw_file_name
+                                )
+                                if self._processed_repository.save(updated_file):
+                                    updated_count += 1
+                            except ValueError:
+                                pass
+                if file.status in [FileStatus.DOWNLOADED, FileStatus.PROCESSED, FileStatus.READY]:
+                    prev = file
+                    prev_observation_datetime = file_observation_datetime
         return updated_count
 
     def process_pending_files(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> int:
@@ -227,10 +239,14 @@ class ProcessFileService:
             file = replace(file,
                            last_processing_attempt_at=datetime.utcnow().isoformat())
             self._processed_repository.save(file)
-            local_path = self._processed_directory / file.raw_file_name
-            self._process(local_path)
+
+            processed_file_name, processed_file_path = self._process(file)
             file = file.transition_to(FileStatus.PROCESSED)
-            file = replace(file, processed_at=datetime.utcnow().isoformat())
+            
+            file = replace(file, 
+                           processed_at=datetime.utcnow().isoformat(),
+                           processed_file_path=str(processed_file_path),
+                           processed_file_name=processed_file_name)
             self._processed_repository.save(file)
             return True
         except Exception as e:
@@ -242,14 +258,85 @@ class ProcessFileService:
             self._processed_repository.save(file)
             return False
     
-    def _process(self, processed_path: Path) -> None:
+    def _process(self, file: ProcessedFile) -> None:
         """
         Performs actual file process.
 
-        Parameters:
-            processed_path: processed file path
+        :param file: file domain entity for processing
+        :param processed_path: processed file path
         """
 
-        # implement processing logic - utilize file.raw_file_path
+        exposure_time = self._metadata_service.read_metadata(file.raw_file_name).exposure_time
 
-        raise NotImplementedError
+        if file.instrument == Instrument.C2:
+            processed_array = self._apply_unsharp_masking(Path(file.raw_file_path), exposure_time)
+        elif file.instrument == Instrument.C3:
+            previous_file_path = self._processed_repository.read_file_by_name(file.previous_file_name).raw_file_path
+            processed_array = self._apply_running_difference(Path(file.raw_file_path), Path(previous_file_path), exposure_time)
+        else:
+            raise ValueError(f"Unsupported instrument: {file.instrument}")
+        
+        base_name = Path(file.raw_file_name).stem
+        obs_dt = datetime.fromisoformat(file.datetime_of_observation)
+        formatted_dt = obs_dt.strftime("%Y%m%d_%H%M")
+        processed_file_name = f"{base_name}_{file.instrument.value}_{formatted_dt}.png"
+        processed_file_path = Path(self._processed_directory / processed_file_name)
+
+        self._save_image(processed_array, processed_file_path)
+
+        return processed_file_name, processed_file_path
+    
+    def _save_image(self, array: np.ndarray, path: Path, cmap="grey") -> None:
+        """
+        Saves processed image
+
+        :param array: processed array representing the processed file
+        :param path: processed file path
+        """
+        plt.imsave(path, array, cmap=cmap)
+
+    def _apply_unsharp_masking(self, current_file_path: Path, exposure: float) -> np.ndarray:
+        """
+        applies unsharp masking  on the raw fts file
+
+        :param raw_file_path: raw file path
+        :param exposure: exposure time
+        :return: processed image array
+        """
+
+        m = Map(str(current_file_path))
+        data = m.data.astype("float64")
+
+        if exposure is None or exposure == 0:
+            raise ValueError("Invalid exposure time")
+        else:
+            data /= exposure
+
+        kernel_size = 25
+        smooth = medfilt2d(data, kernel_size=kernel_size)
+        unsharp = data - smooth
+
+        return np.fliplr(unsharp)
+    
+    def _apply_running_difference(self, current_file_path: Path, previous_file_path: Path, exposure: float) -> np.ndarray:
+        """
+        applies running difference on the raw fts file
+
+        :param current_file_path: raw file path which requires the processing
+        :param previous_file_path: predecessor raw file path on which running difference is calculated
+        :param exposure: exposure time
+        :return: processed image array
+        """
+
+        if exposure is None or exposure == 0:
+            raise ValueError("Invalid exposure time")
+
+        current_map = Map(str(current_file_path))
+        prev_map = Map(str(previous_file_path))
+
+        current = current_map.data.astype("float64") / exposure
+        previous = prev_map.data.astype("float64") / exposure
+
+        diff = current - previous
+
+        return np.fliplr(diff)
