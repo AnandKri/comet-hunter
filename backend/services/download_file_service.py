@@ -172,7 +172,7 @@ class DownloadFileService:
                 file = ProcessedFile(
                     raw_file_name=metadata.raw_file_name,
                     raw_file_hash=None,
-                    raw_file_path=str(self._download_directory / metadata.raw_file_name),
+                    raw_file_path=None,
                     raw_file_size=None,
                     processed_file_name=None,
                     processed_file_hash=None,
@@ -247,16 +247,13 @@ class DownloadFileService:
                                      instrument=file.instrument,
                                      filename=file.raw_file_name)
             
-            local_path = file.raw_file_path
-            self._download(download_url, local_path)
-            
+            download_path = self._download(download_url, file)
             file = file.transition_to(FileStatus.DOWNLOADED)
-            file = replace(file, 
-                           downloaded_at=datetime.now(UTC).isoformat())
+            file = replace(file,
+                            downloaded_at=datetime.now(UTC).isoformat(),
+                            raw_file_path = str(download_path))
             self._processed_repository.save(file)
-            
             return True
-        
         except Exception as e:
             file = file.transition_to(FileStatus.DOWNLOADING_FAILED)
             file = replace(file,
@@ -265,18 +262,18 @@ class DownloadFileService:
             self._processed_repository.save(file)
             return False
     
-    def _download(self, url: str, path: Path) -> None:
+    def _download(self, url: str, file: ProcessedFile) -> Path:
         """
         Performs actual file download.
-
-        Parameters:
-            url: Remote file URL
-            path: Local destination
+        :param url: Remote file URL
+        :param file: file domain entity
+        :return: Local destination
         """
-
+        path = self._download_directory / file.raw_file_name
         response = requests.get(url, stream=True, timeout=60)
         response.raise_for_status()
-
         with open(path, "wb") as f:
             for chunk in response.iter_content(8192):
                 f.write(chunk)
+        
+        return path

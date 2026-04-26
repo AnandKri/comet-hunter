@@ -30,7 +30,7 @@ class ProcessedFileRepository:
             CREATE TABLE IF NOT EXISTS {cls.table_name} (
                 raw_file_name TEXT PRIMARY KEY,
                 raw_file_hash TEXT UNIQUE,
-                raw_file_path TEXT UNIQUE NOT NULL,
+                raw_file_path TEXT UNIQUE,
                 raw_file_size INTEGER,
                 processed_file_name TEXT UNIQUE,
                 processed_file_hash TEXT UNIQUE,
@@ -65,7 +65,7 @@ class ProcessedFileRepository:
     def create_file(self,
                     raw_file_name: str,
                     raw_file_hash: Optional[str],
-                    raw_file_path: str,
+                    raw_file_path: Optional[str],
                     raw_file_size: Optional[int],
                     processed_file_name: Optional[str],
                     processed_file_hash: Optional[str],

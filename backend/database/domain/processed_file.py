@@ -37,7 +37,7 @@ class ProcessedFile:
     """
     raw_file_name: str
     raw_file_hash: Optional[str]
-    raw_file_path: str
+    raw_file_path: Optional[str]
     raw_file_size: Optional[int]
     processed_file_name: Optional[str]
     processed_file_hash: Optional[str]
