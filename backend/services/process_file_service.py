@@ -241,8 +241,8 @@ class ProcessFileService:
             self._processed_repository.save(file)
 
             processed_file_name, processed_file_path = self._process(file)
-            file = file.transition_to(FileStatus.PROCESSED)
             
+            file = file.transition_to(FileStatus.PROCESSED)
             file = replace(file, 
                            processed_at=datetime.utcnow().isoformat(),
                            processed_file_path=str(processed_file_path),
@@ -256,14 +256,16 @@ class ProcessFileService:
                            last_processing_attempt_at=datetime.utcnow().isoformat(),
                            processing_attempt_count=file.processing_attempt_count + 1)
             self._processed_repository.save(file)
+            print(f"PROCESSING FAILED: {file.raw_file_name} -> {e}")
             return False
     
-    def _process(self, file: ProcessedFile) -> None:
+    def _process(self, file: ProcessedFile) -> tuple:
         """
         Performs actual file process.
 
         :param file: file domain entity for processing
         :param processed_path: processed file path
+        :return: tuple containing processed filename and its local path
         """
 
         exposure_time = self._metadata_service.read_metadata(file.raw_file_name).exposure_time
@@ -272,6 +274,10 @@ class ProcessFileService:
             processed_array = self._apply_unsharp_masking(Path(file.raw_file_path), exposure_time)
         elif file.instrument == Instrument.C3:
             previous_file_path = self._processed_repository.read_file_by_name(file.previous_file_name).raw_file_path
+            
+            if not previous_file_path or not file.previous_file_name:
+                raise ValueError(f"Previous file missing or not downloaded: for {file.raw_file_name} - {file.previous_file_name}")
+            
             processed_array = self._apply_running_difference(Path(file.raw_file_path), Path(previous_file_path), exposure_time)
         else:
             raise ValueError(f"Unsupported instrument: {file.instrument}")
