@@ -6,7 +6,7 @@ from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.services.slot_service import SlotService
 from backend.util.constants import Url
 from backend.util.enums import Instrument
-from backend.util.funcs import validate_time_window
+from backend.util.funcs import validate_time_window, _to_utc
 from datetime import datetime, timedelta, UTC
 from zoneinfo import ZoneInfo
 import re
@@ -36,8 +36,6 @@ class MetadataService:
         :return: number of new records inserted
         """
 
-        validate_time_window(downlink_start_utc, downlink_end_utc)
-
         if downlink_end_utc is None:
             downlink_end_utc = datetime.now(UTC).isoformat()
         if downlink_start_utc is None:
@@ -47,15 +45,17 @@ class MetadataService:
             else:
                 downlink_start_utc = (datetime.fromisoformat(downlink_start_utc) - timedelta(days=1)).isoformat()
 
+        validate_time_window(downlink_start_utc, downlink_end_utc)
+        
         all_metadata = []
 
-        downlink_start_dt_utc = datetime.fromisoformat(downlink_start_utc)
-        downlink_end_dt_utc = datetime.fromisoformat(downlink_end_utc)
+        downlink_start_dt_utc = _to_utc(downlink_start_utc)
+        downlink_end_dt_utc = _to_utc(downlink_end_utc)
 
         for raw_text, last_modified_map in self._fetch_metadata(instrument, downlink_start_utc, downlink_end_utc):
             parsed = self._parse_metadata(raw_text, last_modified_map)
             filtered = [f for f in parsed
-                        if downlink_start_dt_utc <= datetime.fromisoformat(f.last_modified_utc) <= downlink_end_dt_utc
+                        if downlink_start_dt_utc <= _to_utc(f.last_modified_utc) <= downlink_end_dt_utc
                         ]
             all_metadata.extend(filtered)
         
@@ -73,8 +73,8 @@ class MetadataService:
         :return: list of raw metadata text (one per day)
         """
 
-        downlink_start_date_utc = datetime.fromisoformat(downlink_start_utc).date()
-        downlink_end_date_utc = datetime.fromisoformat(downlink_end_utc).date()
+        downlink_start_date_utc = _to_utc(downlink_start_utc).date()
+        downlink_end_date_utc = _to_utc(downlink_end_utc).date()
         downlink_current_utc = downlink_start_date_utc
 
         results = []
@@ -89,7 +89,7 @@ class MetadataService:
                 last_modified_map = self._fetch_last_modified_map(instrument, downlink_dt_str_utc)
                 results.append((response.text, last_modified_map))
             except Exception:
-                pass
+                continue
 
             downlink_current_utc += timedelta(days=1)
         return results
@@ -136,7 +136,7 @@ class MetadataService:
                 date_part = parts[1]
                 time_part = parts[2]
                 dt_str = f"{date_part} {time_part}"
-                dt_iso = datetime.strptime(dt_str, "%Y/%m/%d %H:%M:%S").isoformat()
+                dt_iso = datetime.strptime(dt_str, "%Y/%m/%d %H:%M:%S").replace(tzinfo=UTC).isoformat()
                 instrument = Instrument(parts[3].lower())
                 exposure = float(parts[4])
                 width = int(parts[5])
