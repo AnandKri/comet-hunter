@@ -423,3 +423,37 @@ class DownlinkSlotRepository:
             return []
 
         return [DownlinkSlot.from_row(row) for row in result.data]
+    
+    def get_next_active_slot(self, now: str) -> Optional[DownlinkSlot]:
+        """
+        fetch the next upcoming `PENDING` slot where start time
+        is in the future.
+
+        A slot is considered:
+        - upcoming if status = PENDING and bot_utc > now
+        - earliest such slot will be returned
+
+        :param now: current timestamp in ISO UTC format
+        :return: next upcoming DOownlinkSlot or None if not found
+        """
+
+        spec = QuerySpec(
+            sql=f"""
+                SELECT *
+                FROM {self.table_name}
+                WHERE status = ?
+                AND bot_utc > ?
+                ORDER BY bot_utc ASC
+                LIMIT 1
+            """,
+            operation=OperationType.READ,
+            params=(SlotStatus.PENDING.value, now),
+            fetch=FetchType.ONE
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return None
+        
+        return DownlinkSlot.from_row(result.data)
