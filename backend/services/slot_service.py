@@ -204,3 +204,23 @@ class SlotService:
         validate_time_window(downlink_start_utc, downlink_end_utc)
 
         return self._slot_repository.get_future_slots(downlink_start_utc, downlink_end_utc)
+    
+    def next_active_slot_in(self) -> Optional[timedelta]:
+        """
+        Returns the time remaining until the start of next slot.
+        This is independent of if currently there exists an `ACTIVE`
+        slot or not. 
+
+        Logic:
+        - find the earliest `PENDING` slot whose start time is in the future
+        - return the time difference between now and its start time.
+        """
+
+        now = datetime.now(UTC)
+
+        next_active_slot = self._slot_repository.get_next_active_slot(now.isoformat())
+        if not next_active_slot:
+            return None
+        
+        bot_utc = datetime.fromisoformat(next_active_slot.bot_utc)
+        return bot_utc - now
