@@ -204,6 +204,19 @@ class ProcessFileService:
         
         return list({f.raw_file_name: f for f in (ready + retryable)}.values())
     
+    def get_files_by_observation_and_status(self, instrument: Instrument, status: FileStatus, observation_start_utc: str, observation_end_utc: str) -> list[ProcessedFile]:
+        """
+        Returns list of file domain entities of a particular state, for a given observation time period and instrument
+
+        :param instrument: Instrument used for observation
+        :param state: State of the file
+        :param observation_start_utc: observation start time
+        :param observation_end_utc: observation end time
+        :return: list of processedfile domain entities
+        """
+
+        return self._processed_repository.get_files_by_observation_and_status(instrument, status, observation_start_utc, observation_end_utc)
+    
     def _parallel_process(self, files: List[ProcessedFile]) -> int:
         """
         Process files concurrently
