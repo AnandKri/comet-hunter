@@ -3,7 +3,7 @@ from backend.services.metadata_service import MetadataService
 from backend.services.download_file_service import DownloadFileService
 from backend.services.process_file_service import ProcessFileService
 from backend.util.enums import Instrument, FileStatus
-from backend.pipeline.models import RunLivePipelineResult, GetProcessedFramesResult
+from backend.pipeline.models import RunLivePipelineResult, GetProcessedFramesResult, SyncSlotsResult
 from backend.util.funcs import _to_utc
 from datetime import datetime, UTC, timedelta
 
@@ -23,11 +23,14 @@ class Pipeline:
         self.download_service = download_service
         self.process_service = process_service
     
-    def sync_slots(self) -> int:
+    def sync_slots(self) -> SyncSlotsResult:
         """
         Syncs slots from remote source
         """
-        return self.slot_service.sync_slots()
+        slots_synced = self.slot_service.sync_slots()
+        return SyncSlotsResult(
+            slots_synced
+        )
     
     def run_live_pipeline(self, instrument: Instrument) -> RunLivePipelineResult:
         """
