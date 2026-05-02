@@ -1,6 +1,6 @@
 from backend.database.domain.processed_file import ProcessedFile
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Optional
 
 @dataclass
@@ -16,3 +16,21 @@ class GetProcessedFramesResult:
     marked_ready: int
     processed: int
     processed_files: list[ProcessedFile]
+
+@dataclass
+class SyncSlotsResult:
+    slots_synced: int
+
+@dataclass
+class SchedulerStatusResult:
+    running: bool
+    next_run_at: Optional[datetime]
+    next_run_in: Optional[timedelta]
+
+@dataclass
+class SchedulerStartResult:
+    response: int
+
+@dataclass
+class SchedulerShutdownResult:
+    response: int
