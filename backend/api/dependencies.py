@@ -1,5 +1,4 @@
 from pathlib import Path
-from backend.database.infrastructure.bootstrap import bootstrap_database
 from backend.database.infrastructure.query_executor import QueryExecutor
 from backend.database.repositories.file_metadata_repository import FileMetadataRepository
 from backend.database.repositories.processed_file_repository import ProcessedFileRepository
@@ -10,8 +9,6 @@ from backend.services.process_file_service import ProcessFileService
 from backend.services.slot_service import SlotService
 from backend.pipeline.pipeline import Pipeline
 from backend.pipeline.scheduler import Scheduler
-
-bootstrap_database()
 
 executor = QueryExecutor()
 
