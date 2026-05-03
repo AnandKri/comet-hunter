@@ -3,7 +3,7 @@ from backend.services.metadata_service import MetadataService
 from backend.services.download_file_service import DownloadFileService
 from backend.services.process_file_service import ProcessFileService
 from backend.util.enums import Instrument, FileStatus
-from backend.pipeline.models import RunLivePipelineResult, GetProcessedFramesResult, SyncSlotsResult
+from backend.pipeline.models import RunLivePipelineResult, GetProcessedFramesResult, SyncProcessedFramesResult, SyncSlotsResult
 from backend.util.funcs import _to_utc
 from datetime import datetime, UTC, timedelta
 
@@ -71,14 +71,38 @@ class Pipeline:
                              observation_start_utc: str,
                              observation_end_utc: str) -> GetProcessedFramesResult:
         """
-        User driven observation based pipeline.
         returns processedfiles for a given observation time period and instrument.
 
         :param instrument: instrument used for observation
         :param observation_start_utc: observation start time
         :param observation_end_utc: observation end time
-        :return: dictionary containing key-value pairs for metadata synced, files downloaded, marked ready
-        processed, and list of processed file domain entities. 
+        :return: domain entity with `processed_files` containing list of processed
+        file domain entities. 
+        """
+        processed_files = self.process_service.get_files_by_observation_and_status(instrument, 
+                                                                                   FileStatus.PROCESSED, 
+                                                                                   observation_start_utc, 
+                                                                                   observation_end_utc)
+        
+        return GetProcessedFramesResult(
+            processed_files=processed_files
+        )
+
+    
+    def sync_processed_frames(self,
+                             instrument: Instrument,
+                             observation_start_utc: str,
+                             observation_end_utc: str) -> SyncProcessedFramesResult:
+        """
+        User driven observation based pipeline.
+        returns detials of operation done for syncing processed frames for a given 
+        observation instrument and time period 
+
+        :param instrument: instrument used for observation
+        :param observation_start_utc: observation start time
+        :param observation_end_utc: observation end time
+        :return: dictionary containing key-value pairs for metadata synced, files downloaded, 
+        marked ready and processed. 
         """
         
         obs_start_dt = _to_utc(observation_start_utc)
@@ -97,12 +121,9 @@ class Pipeline:
         marked_ready = self.process_service.mark_ready_files_for_processing(instrument, observation_start_utc, observation_end_utc)
         processed = self.process_service.process_pending_files(instrument, observation_start_utc, observation_end_utc)
 
-        processed_files = self.process_service.get_files_by_observation_and_status(instrument, FileStatus.PROCESSED, observation_start_utc, observation_end_utc)
-        
-        return GetProcessedFramesResult(
+        return SyncProcessedFramesResult(
             metadata_synced,
             downloaded,
             marked_ready,
-            processed,
-            processed_files
+            processed
         )

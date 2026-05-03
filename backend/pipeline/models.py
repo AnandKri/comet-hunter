@@ -11,11 +11,14 @@ class RunLivePipelineResult:
 
 @dataclass
 class GetProcessedFramesResult:
+    processed_files: list[ProcessedFile]
+
+@dataclass
+class SyncProcessedFramesResult:
     metadata_synced: int
     downloaded: int
     marked_ready: int
     processed: int
-    processed_files: list[ProcessedFile]
 
 @dataclass
 class SyncSlotsResult:

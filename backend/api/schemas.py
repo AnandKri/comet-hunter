@@ -9,12 +9,14 @@ class ProcessedFileResponse(BaseModel):
     processed_file_path: str
     datetime_of_observation: datetime 
 
-class FramesResponse(BaseModel):
+class GetFramesResponse(BaseModel):
+    files: list[ProcessedFileResponse]
+
+class SyncFramesResponse(BaseModel):
     metadata_synced: int
     downloaded: int
     marked_ready: int
     processed: int
-    files: list[ProcessedFileResponse]
 
 class SyncSlotsResponse(BaseModel):
     slots_synced: int
