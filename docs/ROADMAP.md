@@ -30,7 +30,7 @@ Achieve deterministic, idempotent file acquisition.
 
 ---
 
-### Phase 3 — Processing Pipeline (In Progress)
+### Phase 3 — Processing Pipeline (Implemented)
 
 - FITS ingestion
 - Frame normalization
@@ -43,7 +43,7 @@ Produce consistent, time-aligned frames.
 
 ---
 
-### Phase 4 — Retrieval API
+### Phase 4 — Retrieval API (In Progress)
 
 - Time-sorted retrieval endpoints
 - Pagination
@@ -84,7 +84,6 @@ Ensure robustness under extended operation.
 
 If validated:
 
-- Parallelized processing
-- Distributed ingestion
-- Automated motion detection heuristics (heavier lift)
-- Statistical filtering for candidate identification
+- Parallelized processing (Implemented)
+- Automated motion detection (heavier lift)
+- Statistical and classical machine learning methods for candidate identification

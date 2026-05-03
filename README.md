@@ -37,7 +37,7 @@ This project approaches the problem as a reliability-focused systems design exer
 2. Sync slots
 3. Sync metadata
 4. Trigger download
-5. Process files (in progress)
+5. Process files
 6. Visualization of processed files (planned)
 
 (Commands and example script coming soon...)
@@ -55,13 +55,12 @@ This project approaches the problem as a reliability-focused systems design exer
 
 ### System Flow
 
-1. Slot Modeling
+1. Slot Modeling  
 2. File Metadata Ingestion  
-4. File Discovery
-5. File Download
-6. File Processing  
-7. Time-Indexed Retrieval  
-8. Visualization Layer
+4. File Discovery and Download  
+5. File Processing  
+6. Time-Indexed Retrieval  
+7. Visualization Layer
 
 Each stage is independently restartable and governed by explicit state transitions.
 
@@ -77,13 +76,14 @@ Implemented:
 - Indexed temporal access patterns
 - Metadata ingestion
 - Download orchestration
+- Processing pipeline
+- Implement image processing algorithm
 
 In progress:
-- Processing pipeline
-- Implementing image processing algorithm
+- REST retrieval API
+- Logging configuration
 
 Planned:
-- REST retrieval API
 - Interactive chronological UI
 
 ---
