@@ -32,8 +32,10 @@ class SchedulerStatusResult:
 
 @dataclass
 class SchedulerStartResult:
-    response: int
+    started: bool
+    running: bool
 
 @dataclass
-class SchedulerShutdownResult:
-    response: int
+class SchedulerStopResult:
+    stopped: bool
+    running: bool

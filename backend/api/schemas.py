@@ -27,12 +27,14 @@ class SchedulerStatusResponse(BaseModel):
     next_run_in: Optional[timedelta]
 
 class SchedulerStartResponse(BaseModel):
-    response: int
+    started: bool
+    running: bool
 
-class SchedulerShutdownResponse(BaseModel):
-    response: int
+class SchedulerStopResponse(BaseModel):
+    stopped: bool
+    running: bool
 
 class HealthResponse(BaseModel):
     database: bool
-    scheduler_running: bool
+    scheduler_initialized: bool
     pipeline_initialized: bool
