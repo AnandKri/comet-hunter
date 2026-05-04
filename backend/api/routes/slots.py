@@ -1,9 +1,11 @@
+import logging
 from fastapi import APIRouter, Depends
 from backend.api.schemas import SyncSlotsResponse
 from backend.api.dependencies import get_pipeline
 from backend.pipeline.pipeline import Pipeline
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/sync", response_model=SyncSlotsResponse)
 def sync_slots(
@@ -17,9 +19,20 @@ def sync_slots(
 
     returns number of slots synced
     """
+    logger.info("Slots sync triggered")
 
-    result = pipeline.sync_slots()
+    try:
+        result = pipeline.sync_slots()
 
-    return SyncSlotsResponse(
-        slots_synced=result.slots_synced
-    )
+        logger.info(
+            "Slots sync completed",
+            extra={"slots_synced": result.slots_synced}
+        )
+
+        return SyncSlotsResponse(
+            slots_synced=result.slots_synced
+        )
+    
+    except Exception:
+        logger.exception("Slots sync failed")
+        raise

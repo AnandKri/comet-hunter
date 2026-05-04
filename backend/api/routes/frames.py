@@ -4,8 +4,10 @@ from backend.util.enums import Instrument
 from backend.api.schemas import GetFramesResponse, SyncFramesResponse, ProcessedFileResponse
 from backend.pipeline.pipeline import Pipeline
 from datetime import datetime
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("/", response_model=GetFramesResponse)
 def get_processed_frames(
@@ -17,22 +19,37 @@ def get_processed_frames(
     """
     Fetch processed frames for a given observation window and instrument
     """
-    
-    result = pipeline.get_processed_frames(instrument, start, end)
-    
-    files = [
-        ProcessedFileResponse(
-            processed_file_name = file.processed_file_name,
-            instrument = file.instrument,
-            processed_file_path = file.processed_file_path,
-            datetime_of_observation=datetime.fromisoformat(file.datetime_of_observation)
-        )
-        for file in result.processed_files
-    ]
-
-    return GetFramesResponse(
-        files=files
+    logger.info(
+        "Processed frames retrieval requested",
+        extra={
+            "instrument":instrument,
+            "observation_start_time":start,
+            "observation_end_time":end
+        }
     )
+    try:
+        result = pipeline.get_processed_frames(instrument, start, end)
+        
+        files = [
+            ProcessedFileResponse(
+                processed_file_name = file.processed_file_name,
+                instrument = file.instrument,
+                processed_file_path = file.processed_file_path,
+                datetime_of_observation=datetime.fromisoformat(file.datetime_of_observation)
+            )
+            for file in result.processed_files
+        ]
+        logger.info(
+            "Processed frames retrieved",
+            extra={"count":len(files)}
+        )
+
+        return GetFramesResponse(
+            files=files
+        )
+    except Exception:
+        logger.exception("Processed frames retrieval failed")
+        raise
 
 @router.post("/sync", response_model=SyncFramesResponse)
 def sync_processed_frames(
@@ -49,12 +66,33 @@ def sync_processed_frames(
     - Processes eligible frames
     - Returns details of the operation done
     """
-
-    result = pipeline.sync_processed_frames(instrument, start, end)
-
-    return SyncFramesResponse(
-        metadata_synced=result.metadata_synced,
-        downloaded=result.downloaded,
-        marked_ready=result.marked_ready,
-        processed=result.processed
+    logger.info(
+        "Processed frames sync requested",
+        extra={
+            "instrument":instrument,
+            "observation_start_time":start,
+            "observation_end_time":end
+        }
     )
+    try:
+        result = pipeline.sync_processed_frames(instrument, start, end)
+
+        logger.info(
+            "Processed frames synced",
+            extra={
+                "metadata_synced": result.metadata_synced,
+                "downloaded": result.downloaded,
+                "marked_ready": result.marked_ready,
+                "processed": result.processed
+            }
+        )
+
+        return SyncFramesResponse(
+            metadata_synced=result.metadata_synced,
+            downloaded=result.downloaded,
+            marked_ready=result.marked_ready,
+            processed=result.processed
+        )
+    except Exception:
+        logger.exception("Processed frames sync failed")
+        raise
