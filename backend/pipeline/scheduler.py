@@ -6,6 +6,9 @@ from threading import Lock, Thread
 from backend.util.enums import Instrument
 from backend.pipeline.pipeline import Pipeline
 from backend.pipeline.models import SchedulerStatusResult, SchedulerStartResult, SchedulerStopResult
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Scheduler:
     """
@@ -37,17 +40,44 @@ class Scheduler:
         - Only pipeline execution is wrapped in error handling; scheduling is not
         
         """
+        logger.info("Scheduler job started", extra={"instruments": instruments})        
         try:
-            for instrument in instruments:
-                result = self.pipeline.run_live_pipeline(instrument)
-                next_run = result.next_run
-            if not next_run:
+            if not instruments:
+                logger.warning("Scheduler job skipped: no instruments provided")
                 next_run = timedelta(minutes=5)
-        except Exception as e:
+            
+            for instrument in instruments:
+                logger.debug("Running pipeline", extra={"instrument":instrument})
+                result = self.pipeline.run_live_pipeline(instrument)
+                logger.info(
+                    "Pipeline run complete",
+                    extra={
+                        "instrument": instrument,
+                        "metadata_synced": result.metadata_synced,
+                        "downloaded": result.downloaded,
+                        "next_run": str(result.next_run) if result.next_run else None
+                    }
+                )
+
+                next_run = result.next_run
+            
+            if not next_run:
+                logger.warning("Scheduler fallback interval applied", extra={"fallback_minutes":5})
+                next_run = timedelta(minutes=5)
+        except Exception:
+            logger.exception("Scheduler job execution failed")
             next_run = timedelta(minutes=5)
 
         self.next_run_in = next_run
         self.next_run_at = datetime.now(UTC) + next_run
+
+        logger.info(
+            "Next scheduler run scheduled",
+            extra={
+                "next_run_at": str(self.next_run_at) if self.next_run_at else None,
+                "next_run_in": str(self.next_run_in) if self.next_run_in else None
+            }
+        )
 
         self.scheduler.add_job(
             self._job,
@@ -73,24 +103,34 @@ class Scheduler:
         """
         with self._lock:
             if self.running:
+                logger.warning("Scheduler start ignored")
                 return SchedulerStartResult(
                     started=False,
                     running=self.running
                 )
-            
-            self.scheduler.start()
-            self.running = True
-            
-            Thread(
-                target=self._job,
-                kwargs={"instruments": instruments},
-                daemon=True
-            ).start()
+            logger.info("Starting scheduler")
+            try:
+                self.scheduler.start()
+                self.running = True
 
-            return SchedulerStartResult(
-                started=True,
-                running=self.running
-            )
+                logger.info(
+                    "Scheduler state transition: stopped -> running",
+                    extra={"instruments": instruments}
+                )
+
+                Thread(
+                    target=self._job,
+                    kwargs={"instruments": instruments},
+                    daemon=True
+                ).start()
+
+                return SchedulerStartResult(
+                    started=True,
+                    running=self.running
+                )
+            except Exception:
+                logger.exception("Scheduler failed to start")
+                raise
     
     def get_status(self) -> SchedulerStatusResult:
         """
@@ -120,17 +160,21 @@ class Scheduler:
         
         with self._lock:
             if not self.running:
+                logger.warning("Scheduler stop ignored")
                 return SchedulerStopResult(
                     stopped=False,
                     running=self.running
                 )
-            
-            self.scheduler.shutdown(wait=False)
-            self.running = False
-            self.next_run_at = None
-            self.next_run_in = None
-            
-        return SchedulerStopResult(
-            stopped=True,
-            running=self.running
-        )
+            try:
+                self.scheduler.shutdown(wait=False)
+                self.running = False
+                self.next_run_at = None
+                self.next_run_in = None
+                logger.info("Scheduler state transition: running -> stopped")
+                return SchedulerStopResult(
+                    stopped=True,
+                    running=self.running
+                )
+            except Exception:
+                logger.exception("Scheduler failed to stop")
+                raise
