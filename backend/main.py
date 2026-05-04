@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from backend.database.infrastructure.bootstrap import bootstrap_database
-from backend.logging_config import setup_logging
+from backend.core.logging_config import setup_logging
 from backend.api.dependencies import get_scheduler
 from backend.api.routes import frames, slots, health, scheduler as scheduler_routes
+from backend.api.middleware import LoggingMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,6 +18,8 @@ app = FastAPI(
     title="Comet Hunter API",
     lifespan=lifespan
 )
+
+app.add_middleware(LoggingMiddleware)
 
 app.include_router(health.router, prefix="/health", tags=["Health"])
 app.include_router(slots.router, prefix="/slots", tags=["Slots"])
