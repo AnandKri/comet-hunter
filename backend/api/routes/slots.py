@@ -24,10 +24,7 @@ def sync_slots(
     try:
         result = pipeline.sync_slots()
 
-        logger.info(
-            "Slots sync completed",
-            extra={"slots_synced": result.slots_synced}
-        )
+        logger.info("Slots sync completed")
 
         return SyncSlotsResponse(
             slots_synced=result.slots_synced

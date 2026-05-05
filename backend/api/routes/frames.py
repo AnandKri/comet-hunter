@@ -23,8 +23,8 @@ def get_processed_frames(
         "Processed frames retrieval requested",
         extra={
             "instrument":instrument,
-            "observation_start_time":start,
-            "observation_end_time":end
+            "observation_start_utc":start,
+            "observation_end_utc":end
         }
     )
     try:
@@ -40,8 +40,7 @@ def get_processed_frames(
             for file in result.processed_files
         ]
         logger.info(
-            "Processed frames retrieved",
-            extra={"count":len(files)}
+            "Processed frames retrieved"
         )
 
         return GetFramesResponse(
@@ -70,22 +69,14 @@ def sync_processed_frames(
         "Processed frames sync requested",
         extra={
             "instrument":instrument,
-            "observation_start_time":start,
-            "observation_end_time":end
+            "observation_start_utc":start,
+            "observation_end_utc":end
         }
     )
     try:
         result = pipeline.sync_processed_frames(instrument, start, end)
 
-        logger.info(
-            "Processed frames synced",
-            extra={
-                "metadata_synced": result.metadata_synced,
-                "downloaded": result.downloaded,
-                "marked_ready": result.marked_ready,
-                "processed": result.processed
-            }
-        )
+        logger.info("Processed frames synced")
 
         return SyncFramesResponse(
             metadata_synced=result.metadata_synced,
