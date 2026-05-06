@@ -77,10 +77,10 @@ Implemented:
 - Metadata ingestion
 - Download orchestration
 - Processing pipeline
-- Implement image processing algorithm
+- Image processing algorithm
+- REST retrieval API
 
 In progress:
-- REST retrieval API
 - Logging configuration
 
 Planned:
