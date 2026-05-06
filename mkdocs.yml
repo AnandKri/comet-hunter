@@ -1,0 +1,56 @@
+site_name: Comet Hunter
+site_description: LASCO comet processing pipeline
+site_author: Anand
+
+theme:
+  name: material
+
+docs_dir: docs
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["."]
+          options:
+            show_source: false
+            show_root_heading: true
+            show_signature: true
+            separate_signature: true
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - codehilite
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+
+  - Architecture:
+      - Overview: architecture.md
+      - Pipeline: pipeline.md
+      - Database: database.md
+
+  - Domain:
+      - Processed File: domain/processed_file.md
+      - Downlink Slot: domain/downlink_slot.md
+      - File Metadata: domain/file_metadata.md
+
+  - Services:
+      - Slot Service: services/slot_service.md
+      - Metadata Service: services/metadata_service.md
+      - Download Service: services/download_service.md
+      - Process Service: services/process_service.md
+
+  - Repositories:
+      - Slot Repository: repositories/downlink_slot_repository.md
+      - Metadata Repository: repositories/file_metadata_repository.md
+      - Processed Repository: repositories/processed_file_repository.md
+
+  - Infrastructure:
+      - Query Executor: infrastructure/query_executor.md
+      - Query Spec: infrastructure/query_spec.md
+      - Database Base: infrastructure/database_base.md
