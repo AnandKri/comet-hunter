@@ -12,6 +12,9 @@ from backend.util.enums import FileStatus, Instrument
 from backend.util.constants import Url
 from backend.util.funcs import validate_time_window
 from backend.services.metadata_service import MetadataService
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DownloadFileService:
     """
@@ -42,31 +45,45 @@ class DownloadFileService:
         :param now_utc: current UTC timestamp (ISO format)
         :return: number of files recovered.
         """
+        logger.info(
+            "Download stale file recovery started",
+            extra={"instrument": instrument}
+        )
+        try:
+            now_dt = datetime.fromisoformat(now_utc)
 
-        now_dt = datetime.fromisoformat(now_utc)
+            recovered_count = 0
 
-        recovered_count = 0
+            downloading_files = self._processed_repository.get_files_by_status(instrument, status=FileStatus.DOWNLOADING, order_by='last_downloading_attempt_at')
 
-        downloading_files = self._processed_repository.get_files_by_status(instrument, status=FileStatus.DOWNLOADING, order_by='last_downloading_attempt_at')
+            for file in downloading_files:
+                if not file.last_downloading_attempt_at:
+                    continue
+                last_attempt_dt = datetime.fromisoformat(file.last_downloading_attempt_at)
+                if now_dt - last_attempt_dt > self.DOWNLOADING_TIMEOUT:
+                    try:
+                        updated = file.transition_to(FileStatus.DOWNLOADING_FAILED)
+                        updated = replace(
+                            updated,
+                            error_message="Recovered: download timeout",
+                            downloading_attempt_count=file.downloading_attempt_count + 1,
+                            last_downloading_attempt_at=now_utc
+                        )
+                        if self._processed_repository.save(updated):
+                            recovered_count += 1
+                    except ValueError:
+                        logger.warning("Invalid state transition during stale recovery")
+            
+            logger.info(
+                "Download stale file recovery completed",
+                extra={"recovered_count": recovered_count}
+            )
 
-        for file in downloading_files:
-            if not file.last_downloading_attempt_at:
-                continue
-            last_attempt_dt = datetime.fromisoformat(file.last_downloading_attempt_at)
-            if now_dt - last_attempt_dt > self.DOWNLOADING_TIMEOUT:
-                try:
-                    updated = file.transition_to(FileStatus.DOWNLOADING_FAILED)
-                    updated = replace(
-                        updated,
-                        error_message="Recovered: download timeout",
-                        downloading_attempt_count=file.downloading_attempt_count + 1,
-                        last_downloading_attempt_at=now_utc
-                    )
-                    if self._processed_repository.save(updated):
-                        recovered_count += 1
-                except ValueError:
-                    pass
-        return recovered_count
+            return recovered_count
+        
+        except Exception:
+            logger.exception("Download stale file recovery failed")
+            raise
 
     def download_files_by_slots(self, instrument: Instrument, slots: List[DownlinkSlot]) -> int:
         """
@@ -81,20 +98,38 @@ class DownloadFileService:
         :param slots: list of slot domain entities
         :return: returns number of successfully downloaded files.
         """
+        logger.info("Slot-based file download execution started",
+                    extra={"instrument": instrument})
+        try:
+            if not slots:
+                logger.info("No slots provided for download")
+                return 0
+            
+            downlink_start_utc = min(slot.bot_utc for slot in slots)
+            downlink_end_utc = max(slot.eot_utc for slot in slots)
 
-        if not slots:
-            return 0
+            metadata_files = self._metadata_service.get_metadata_by_downlink(instrument, downlink_start_utc, downlink_end_utc)
+
+            files = self._get_files_to_download(metadata_files)
+            if not files:
+                logger.info("No eligible files found for download")
+                return 0
+            
+            downloaded = self._parallel_download(files)
+            
+            logger.info(
+                "Slot-based file download execution completed",
+                extra={
+                    "candidate_files": len(files),
+                    "downloaded_files": downloaded
+                }
+            )
+
+            return downloaded
         
-        downlink_start_utc = min(slot.bot_utc for slot in slots)
-        downlink_end_utc = max(slot.eot_utc for slot in slots)
-
-        metadata_files = self._metadata_service.get_metadata_by_downlink(instrument, downlink_start_utc, downlink_end_utc)
-
-        files = self._get_files_to_download(metadata_files)
-        if not files:
-            return 0
-        
-        return self._parallel_download(files)
+        except Exception:
+            logger.exception("Slot-based file download execution failed")
+            raise
     
     def download_files_by_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> int:
         """
@@ -125,16 +160,35 @@ class DownloadFileService:
         :param observation_end_utc: end timestamp (ISO)
         :return: number of files downloaded successfully.
         """
+        logger.info(
+            "Observation-based file download execution started",
+            extra={
+                "instrument": instrument,
+                "observation_start_utc": observation_start_utc,
+                "observation_end_utc": observation_end_utc
+            }
+        )
+        try:
+            validate_time_window(observation_start_utc, observation_end_utc)
 
-        validate_time_window(observation_start_utc, observation_end_utc)
+            metadata_files = self._metadata_service.get_metadata_by_observation(instrument, observation_start_utc, observation_end_utc)
 
-        metadata_files = self._metadata_service.get_metadata_by_observation(instrument, observation_start_utc, observation_end_utc)
-
-        files = self._get_files_to_download(metadata_files)
-        if not files:
-            return 0
+            files = self._get_files_to_download(metadata_files)
+            if not files:
+                logger.info("No eligible files found for download")
+                return 0
+            
+            downloaded = self._parallel_download(files)
+            
+            logger.info("Observation-based file download execution completed",
+                        extra={"candidate_files": len(files),
+                               "downloaded_files": downloaded})
+            
+            return downloaded
         
-        return self._parallel_download(files)
+        except Exception:
+            logger.exception("Observation-based file download execution failed")
+            raise
     
     def get_downloaded_files_by_time(self, instrument: Instrument, download_start_utc: str, download_end_utc: str) -> list[ProcessedFile]:
         """

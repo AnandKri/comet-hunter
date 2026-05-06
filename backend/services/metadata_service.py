@@ -10,6 +10,9 @@ from backend.util.funcs import validate_time_window, _to_utc
 from datetime import datetime, timedelta, UTC
 from zoneinfo import ZoneInfo
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MetadataService:
     """
@@ -35,33 +38,56 @@ class MetadataService:
         :param downlink_end_utc: end datetime (ISO string, optional)
         :return: number of new records inserted
         """
-
-        if downlink_end_utc is None:
-            downlink_end_utc = datetime.now(UTC).isoformat()
-        if downlink_start_utc is None:
-            downlink_start_utc = self._metadata_repository.get_latest_last_modified(instrument)
+        logger.info(
+            "Metadata sync service execution started",
+            extra={
+                "instrument": instrument,
+                "downlink_start_utc": downlink_start_utc,
+                "downlink_end_utc": downlink_end_utc
+            }
+        )
+        try:
+            if downlink_end_utc is None:
+                downlink_end_utc = datetime.now(UTC).isoformat()
             if downlink_start_utc is None:
-                downlink_start_utc = (datetime.fromisoformat(downlink_end_utc) - timedelta(days=1)).isoformat()
-            else:
-                downlink_start_utc = (datetime.fromisoformat(downlink_start_utc) - timedelta(days=1)).isoformat()
+                downlink_start_utc = self._metadata_repository.get_latest_last_modified(instrument)
+                if downlink_start_utc is None:
+                    downlink_start_utc = (datetime.fromisoformat(downlink_end_utc) - timedelta(days=1)).isoformat()
+                else:
+                    downlink_start_utc = (datetime.fromisoformat(downlink_start_utc) - timedelta(days=1)).isoformat()
 
-        validate_time_window(downlink_start_utc, downlink_end_utc)
+            validate_time_window(downlink_start_utc, downlink_end_utc)
+            
+            all_metadata = []
+
+            downlink_start_dt_utc = _to_utc(downlink_start_utc)
+            downlink_end_dt_utc = _to_utc(downlink_end_utc)
+
+            for raw_text, last_modified_map in self._fetch_metadata(instrument, downlink_start_utc, downlink_end_utc):
+                parsed = self._parse_metadata(raw_text, last_modified_map)
+                filtered = [f for f in parsed
+                            if downlink_start_dt_utc <= _to_utc(f.last_modified_utc) <= downlink_end_dt_utc
+                            ]
+                all_metadata.extend(filtered)
+            
+            new_files = self._discover_new_files(all_metadata)
+
+            inserted  = self._metadata_repository.bulk_create_metadata(new_files)
+
+            logger.info(
+                "Metadata sync service execution completed",
+                extra={
+                    "metadata_fetched": len(all_metadata),
+                    "new_metadata_fetched": len(new_files),
+                    "metadata_inserted": inserted
+                }
+            )
+
+            return inserted
         
-        all_metadata = []
-
-        downlink_start_dt_utc = _to_utc(downlink_start_utc)
-        downlink_end_dt_utc = _to_utc(downlink_end_utc)
-
-        for raw_text, last_modified_map in self._fetch_metadata(instrument, downlink_start_utc, downlink_end_utc):
-            parsed = self._parse_metadata(raw_text, last_modified_map)
-            filtered = [f for f in parsed
-                        if downlink_start_dt_utc <= _to_utc(f.last_modified_utc) <= downlink_end_dt_utc
-                        ]
-            all_metadata.extend(filtered)
-        
-        new_files = self._discover_new_files(all_metadata)
-
-        return self._metadata_repository.bulk_create_metadata(new_files)
+        except Exception:
+            logger.exception("Metadata sync service execution failed")
+            raise
     
     def _fetch_metadata(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> list[tuple[str, dict]]:
         """

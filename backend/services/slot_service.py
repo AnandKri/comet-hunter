@@ -7,6 +7,9 @@ from backend.util.funcs import validate_time_window
 import requests
 import re
 from datetime import datetime, timedelta, UTC 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SlotService:
     """
@@ -27,20 +30,31 @@ class SlotService:
 
         :return: number of new slots inserted
         """
+        logger.info("Slot sync service execution started")
+        try:
+            raw_data = self._fetch_slot_data()
+            slots = self._parse_slots(raw_data)
+            if not slots:
+                raise RuntimeError("No slots parsed - parser likely broken")
+            
+            inserted = 0
 
-        raw_data = self._fetch_slot_data()
-        slots = self._parse_slots(raw_data)
-        if not slots:
-            raise RuntimeError("No slots parsed - parser likely broken")
-        
-        inserted = 0
-
-        for slot in slots:
-            if not self._slot_repository.exists(identity=slot.identity()):
-                if self._slot_repository.create_slot(slot):
-                    inserted += 1
-        
-        return inserted
+            for slot in slots:
+                if not self._slot_repository.exists(identity=slot.identity()):
+                    if self._slot_repository.create_slot(slot):
+                        inserted += 1
+            logger.info(
+                "Slot sync service execution completed",
+                extra={
+                    "slots_parsed": len(slots),
+                    "slots_inserted": inserted
+                }
+            )
+            
+            return inserted
+        except Exception:
+            logger.exception("Slot sync service execution failed")
+            raise
     
     def _fetch_slot_data(self) -> str:
         """
@@ -149,24 +163,45 @@ class SlotService:
 
         :return: Active DownlinkSlot if available, else None
         """
+        logger.info("Active slot synchronization started")
+        try:
+            now = datetime.now(UTC).isoformat()
 
-        now = datetime.now(UTC).isoformat()
+            self._slot_repository.mark_expired_active_as_missed(now)
+            self._slot_repository.mark_expired_pending_as_missed(now)
 
-        self._slot_repository.mark_expired_active_as_missed(now)
-        self._slot_repository.mark_expired_pending_as_missed(now)
+            active = self._slot_repository.get_active_slot()
+            if active:
+                logger.info(
+                    "Existing active slot found",
+                    extra={"downlink_start_utc": active.bot_utc,
+                        "downlink_end_utc": active.eot_utc}
+                )
+                return active
+            
+            logger.info("No existing active slot found")
 
-        active = self._slot_repository.get_active_slot()
-        if active:
-            return active
+            slot = self._slot_repository.get_next_claimable_slot(now)
+            if not slot:
+                logger.info("No claimable pending slot found")
+                return None
 
-        slot = self._slot_repository.get_next_claimable_slot(now)
-        if not slot:
-            return None
+            slot = self._slot_repository.update_status(SlotStatus.ACTIVE, slot)
 
-        slot = self._slot_repository.update_status(SlotStatus.ACTIVE, slot)
+            logger.info(
+                "Pending slot claimed as active",
+                extra={
+                    "downlink_start_utc": slot.bot_utc,
+                    "downlink_end_utc": slot.eot_utc
+                }
+            )
 
-        return slot
-    
+            return slot
+        
+        except Exception:
+            logger.exception("Active slot synchronization failed")
+            raise
+
     def delete_completed_slots(self) -> int:
         """
         Deletes completed (`DONE`) slots.

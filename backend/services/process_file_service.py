@@ -12,6 +12,9 @@ import numpy as np
 from scipy.signal import medfilt2d
 from sunpy.map import Map
 import matplotlib.pyplot as plt
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ProcessFileService:
     """
@@ -45,32 +48,43 @@ class ProcessFileService:
         :param now_utc: current UTC timestamp (ISO format)
         :return: number of files recovered.
         """
+        logger.info(
+            "Process stale file recovery started",
+            extra={"instrument": instrument}
+        )
+        try:
+            now_dt = datetime.fromisoformat(now_utc)
 
-        now_dt = datetime.fromisoformat(now_utc)
+            recovered_count = 0
 
-        recovered_count = 0
+            processing_files = self._processed_repository.get_files_by_status(instrument, status=FileStatus.PROCESSING, order_by='last_processing_attempt_at')
 
-        processing_files = self._processed_repository.get_files_by_status(instrument, status=FileStatus.PROCESSING, order_by='last_processing_attempt_at')
-
-        for file in processing_files:
-            if not file.last_processing_attempt_at:
-                continue
-            last_attempt_dt = datetime.fromisoformat(file.last_processing_attempt_at)
-            if now_dt - last_attempt_dt > self.PROCESSING_TIMEOUT:
-                try:
-                    updated = file.transition_to(FileStatus.PROCESSING_FAILED)
-                    updated = replace(
-                        updated,
-                        error_message="Recovered: processing timeout",
-                        processing_attempt_count=file.processing_attempt_count + 1,
-                        last_processing_attempt_at=now_utc
-                    )
-                    if self._processed_repository.save(updated):
-                        recovered_count += 1
-                except ValueError:
-                    pass
+            for file in processing_files:
+                if not file.last_processing_attempt_at:
+                    continue
+                last_attempt_dt = datetime.fromisoformat(file.last_processing_attempt_at)
+                if now_dt - last_attempt_dt > self.PROCESSING_TIMEOUT:
+                    try:
+                        updated = file.transition_to(FileStatus.PROCESSING_FAILED)
+                        updated = replace(
+                            updated,
+                            error_message="Recovered: processing timeout",
+                            processing_attempt_count=file.processing_attempt_count + 1,
+                            last_processing_attempt_at=now_utc
+                        )
+                        if self._processed_repository.save(updated):
+                            recovered_count += 1
+                    except ValueError:
+                        logger.warning("Invalid state transition during stale recovery")
+            logger.info(
+                "Process stale file recovery completed",
+                extra={"recovered_count": recovered_count}
+            )
+            return recovered_count
         
-        return recovered_count
+        except Exception:
+            logger.exception("Process stale file recovery failed")
+            raise
     
     def recover_unmarked_ready_files(self,instrument: Instrument,observation_start_utc: str,observation_end_utc: str) -> int:
         """
@@ -112,45 +126,61 @@ class ProcessFileService:
         :param observation_end_utc: ending utc timestamp of observation
         :return: Number of files which are updated to `READY`
         """
+        logger.info(
+            "File readiness evaluation started",
+            extra={
+                "instrument": instrument,
+                "observation_start_utc": observation_start_utc,
+                "observation_end_utc": observation_end_utc
+            }
+        )
+        try:
+            validate_time_window(observation_start_utc, observation_end_utc)
+            updated_count = 0
 
-        validate_time_window(observation_start_utc, observation_end_utc)
-        updated_count = 0
-
-        if instrument == Instrument.C2:
-            files = self._processed_repository.get_files_by_observation(instrument, observation_start_utc, observation_end_utc)
-            for file in files:
-                if file.status == FileStatus.DOWNLOADED:
-                    try:
-                        updated_file = file.transition_to(FileStatus.READY)
-                        if self._processed_repository.save(updated_file):
-                            updated_count += 1
-                    except ValueError:
-                        pass
-        else:
-            observation_start_datetime = datetime.fromisoformat(observation_start_utc)
-            fetch_start_time = (observation_start_datetime - self.LOOKBACK_BUFFER).isoformat()
-            files = self._processed_repository.get_files_by_observation(instrument, fetch_start_time,observation_end_utc)
-            prev = None
-            for file in files:
-                file_observation_datetime = datetime.fromisoformat(file.datetime_of_observation)
-                if (file_observation_datetime >= observation_start_datetime) and (file.status == FileStatus.DOWNLOADED):
-                    if prev:
-                        observation_difference = file_observation_datetime - prev_observation_datetime
-                        if  self.MIN_OBSERVATION_GAP <= observation_difference <= self.MAX_OBSERVATION_GAP:
-                            try:
-                                updated_file = file.transition_to(FileStatus.READY)
-                                updated_file = replace(
-                                    updated_file,
-                                    previous_file_name=prev.raw_file_name
-                                )
-                                if self._processed_repository.save(updated_file):
-                                    updated_count += 1
-                            except ValueError:
-                                pass
-                if file.status in [FileStatus.DOWNLOADED, FileStatus.PROCESSED, FileStatus.READY]:
-                    prev = file
-                    prev_observation_datetime = file_observation_datetime
-        return updated_count
+            if instrument == Instrument.C2:
+                files = self._processed_repository.get_files_by_observation(instrument, observation_start_utc, observation_end_utc)
+                for file in files:
+                    if file.status == FileStatus.DOWNLOADED:
+                        try:
+                            updated_file = file.transition_to(FileStatus.READY)
+                            if self._processed_repository.save(updated_file):
+                                updated_count += 1
+                        except ValueError:
+                            logger.warning("Invalid READY state transition skipped")
+            else:
+                observation_start_datetime = datetime.fromisoformat(observation_start_utc)
+                fetch_start_time = (observation_start_datetime - self.LOOKBACK_BUFFER).isoformat()
+                files = self._processed_repository.get_files_by_observation(instrument, fetch_start_time,observation_end_utc)
+                prev = None
+                for file in files:
+                    file_observation_datetime = datetime.fromisoformat(file.datetime_of_observation)
+                    if (file_observation_datetime >= observation_start_datetime) and (file.status == FileStatus.DOWNLOADED):
+                        if prev:
+                            observation_difference = file_observation_datetime - prev_observation_datetime
+                            if  self.MIN_OBSERVATION_GAP <= observation_difference <= self.MAX_OBSERVATION_GAP:
+                                try:
+                                    updated_file = file.transition_to(FileStatus.READY)
+                                    updated_file = replace(
+                                        updated_file,
+                                        previous_file_name=prev.raw_file_name
+                                    )
+                                    if self._processed_repository.save(updated_file):
+                                        updated_count += 1
+                                except ValueError:
+                                    logger.warning("Invalid READY state transition skipped")
+                    
+                    if file.status in [FileStatus.DOWNLOADED, FileStatus.PROCESSED, FileStatus.READY]:
+                        prev = file
+                        prev_observation_datetime = file_observation_datetime
+            logger.info(
+                "File readiness evaluation completed",
+                extra={"marked_ready": updated_count}
+            )
+            return updated_count
+        except Exception:
+            logger.exception("File readiness evaluation failed")
+            raise
 
     def process_pending_files(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> int:
         """
@@ -161,15 +191,35 @@ class ProcessFileService:
         :param observation_end_utc: ending utc timestamp of observation
         :return: returns number of files processed
         """
+        logger.info(
+            "File processing execution started",
+            extra={
+                "instrument": instrument,
+                "observation_start_utc": observation_start_utc,
+                "observation_end_utc": observation_end_utc
+            }
+        )
+        try:
+            validate_time_window(observation_start_utc, observation_end_utc)
 
-        validate_time_window(observation_start_utc, observation_end_utc)
+            files = self._get_files_to_process(instrument, observation_start_utc, observation_end_utc)
 
-        files = self._get_files_to_process(instrument, observation_start_utc, observation_end_utc)
+            if not files:
+                logger.info("No eligible files found for processing")
+                return 0
+            
+            processed = self._parallel_process(files)
 
-        if not files:
-            return 0
-        
-        return self._parallel_process(files)
+            logger.info(
+                "File processing execution completed",
+                extra={"candidate_files": len(files),
+                       "processed": processed}
+            )
+            
+            return processed
+        except Exception:
+            logger.exception("File processing execution failed")
+            raise
     
     def _get_files_to_process(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> List[ProcessedFile]:
         """
