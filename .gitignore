@@ -4,9 +4,13 @@ __pycache__/
 #virtual environment
 venv/
 
+# mkdocs build files
+site/
+
 # misc. files
 plan.txt
-process_*
+process_c2.py
+process_c3.py
 test.py
 
 #database
