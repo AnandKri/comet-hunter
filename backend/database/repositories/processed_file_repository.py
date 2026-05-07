@@ -4,6 +4,9 @@ from typing import Optional, ClassVar, Literal
 from backend.database.domain.processed_file import ProcessedFile
 from backend.database.infrastructure.query_spec import QuerySpec
 from backend.database.infrastructure.query_executor import QueryExecutor
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ProcessedFileRepository:
     """
@@ -107,39 +110,16 @@ class ProcessedFileRepository:
         :param previous_file_name: previous file name which will help with processing
         :return: Returns True only if the number of created rows is 1
         """
-        
-        if not isinstance(status, FileStatus):
-            raise ValueError("status must be FileStatus enum")
-        if not isinstance(instrument, Instrument):
-            raise ValueError("instrument should be Instrument enum")
-        
-        spec = QuerySpec(
-            sql = f"""
-                INSERT OR IGNORE INTO {self.table_name}
-                (raw_file_name,
-                raw_file_hash,
-                raw_file_path,
-                raw_file_size,
-                processed_file_name,
-                processed_file_hash,
-                processed_file_path,
-                processed_file_size,
-                datetime_of_observation,
-                instrument,
-                status,
-                error_message,
-                downloaded_at,
-                last_downloading_attempt_at,
-                downloading_attempt_count,
-                processed_at,
-                last_processing_attempt_at,
-                processing_attempt_count,
-                previous_file_name)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-            operation=OperationType.WRITE,
-            params=(
-                    raw_file_name,
+        try:
+            if not isinstance(status, FileStatus):
+                raise ValueError("status must be FileStatus enum")
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument should be Instrument enum")
+            
+            spec = QuerySpec(
+                sql = f"""
+                    INSERT OR IGNORE INTO {self.table_name}
+                    (raw_file_name,
                     raw_file_hash,
                     raw_file_path,
                     raw_file_size,
@@ -148,8 +128,8 @@ class ProcessedFileRepository:
                     processed_file_path,
                     processed_file_size,
                     datetime_of_observation,
-                    instrument.value,
-                    status.value,
+                    instrument,
+                    status,
                     error_message,
                     downloaded_at,
                     last_downloading_attempt_at,
@@ -157,13 +137,39 @@ class ProcessedFileRepository:
                     processed_at,
                     last_processing_attempt_at,
                     processing_attempt_count,
-                    previous_file_name
-                )
-        )
-        
-        result = self._executor.execute(spec)
+                    previous_file_name)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                operation=OperationType.WRITE,
+                params=(
+                        raw_file_name,
+                        raw_file_hash,
+                        raw_file_path,
+                        raw_file_size,
+                        processed_file_name,
+                        processed_file_hash,
+                        processed_file_path,
+                        processed_file_size,
+                        datetime_of_observation,
+                        instrument.value,
+                        status.value,
+                        error_message,
+                        downloaded_at,
+                        last_downloading_attempt_at,
+                        downloading_attempt_count,
+                        processed_at,
+                        last_processing_attempt_at,
+                        processing_attempt_count,
+                        previous_file_name
+                    )
+            )
+            
+            result = self._executor.execute(spec)
 
-        return result.rows_affected == 1
+            return result.rows_affected == 1
+        except Exception:
+            logger.exception("Error in creating processed file record")
+            return False
     
     def read_file_by_name(self, raw_file_name: str) -> Optional[ProcessedFile]:
         """
@@ -198,20 +204,23 @@ class ProcessedFileRepository:
         :param file: processed file domain entity
         :return : Returns boolean value, True if deletion happened
         """
+        try:
+            spec = QuerySpec(
+                sql=f"""
+                    DELETE FROM {self.table_name}
+                    WHERE raw_file_name = ?
+                """,
+                operation=OperationType.WRITE,
+                params=(file.raw_file_name,)
+            )
 
-        spec = QuerySpec(
-            sql=f"""
-                DELETE FROM {self.table_name}
-                WHERE raw_file_name = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(file.raw_file_name,)
-        )
+            result = self._executor.execute(spec)
 
-        result = self._executor.execute(spec)
+            return result.rows_affected == 1
+        except Exception:
+            logger.exception("Error deleting processed file record")
+            return False
 
-        return result.rows_affected == 1
-    
     def save(self, file: ProcessedFile) -> bool:
         """
         Persists latest state of a processed file domain entity.
@@ -219,49 +228,52 @@ class ProcessedFileRepository:
         :param file: Domain object containing latest state.
         :return: True if exactly one row updated.
         """
-
-        spec = QuerySpec(
-            sql=f"""
-                UPDATE {self.table_name}
-                SET status = ?,
-                    error_message = ?,
-                    downloaded_at = ?,
-                    last_downloading_attempt_at = ?,
-                    downloading_attempt_count = ?,
-                    raw_file_path = ?,
-                    processed_file_hash = ?,
-                    processed_file_name = ?,
-                    processed_file_path = ?,
-                    processed_file_size = ?,
-                    processed_at = ?,
-                    last_processing_attempt_at = ?,
-                    processing_attempt_count = ?,
-                    previous_file_name = ?
-                WHERE raw_file_name = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(
-                file.status.value,
-                file.error_message,
-                file.downloaded_at,
-                file.last_downloading_attempt_at,
-                file.downloading_attempt_count,
-                file.raw_file_path,
-                file.processed_file_hash,
-                file.processed_file_name,
-                file.processed_file_path,
-                file.processed_file_size,
-                file.processed_at,
-                file.last_processing_attempt_at,
-                file.processing_attempt_count,
-                file.previous_file_name,
-                file.raw_file_name
+        try:
+            spec = QuerySpec(
+                sql=f"""
+                    UPDATE {self.table_name}
+                    SET status = ?,
+                        error_message = ?,
+                        downloaded_at = ?,
+                        last_downloading_attempt_at = ?,
+                        downloading_attempt_count = ?,
+                        raw_file_path = ?,
+                        processed_file_hash = ?,
+                        processed_file_name = ?,
+                        processed_file_path = ?,
+                        processed_file_size = ?,
+                        processed_at = ?,
+                        last_processing_attempt_at = ?,
+                        processing_attempt_count = ?,
+                        previous_file_name = ?
+                    WHERE raw_file_name = ?
+                """,
+                operation=OperationType.WRITE,
+                params=(
+                    file.status.value,
+                    file.error_message,
+                    file.downloaded_at,
+                    file.last_downloading_attempt_at,
+                    file.downloading_attempt_count,
+                    file.raw_file_path,
+                    file.processed_file_hash,
+                    file.processed_file_name,
+                    file.processed_file_path,
+                    file.processed_file_size,
+                    file.processed_at,
+                    file.last_processing_attempt_at,
+                    file.processing_attempt_count,
+                    file.previous_file_name,
+                    file.raw_file_name
+                )
             )
-        )
 
-        result = self._executor.execute(spec)
+            result = self._executor.execute(spec)
 
-        return result.rows_affected == 1
+            return result.rows_affected == 1
+        except Exception:
+            logger.exception("Error saving processed file record")
+            return False
 
     def exists_by_name(self, raw_file_name: str) -> bool:
         """

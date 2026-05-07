@@ -6,6 +6,9 @@ from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.database.infrastructure.query_spec import QuerySpec
 from backend.database.infrastructure.query_executor import QueryExecutor
 from dataclasses import replace
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DownlinkSlotRepository:
     """
@@ -56,23 +59,26 @@ class DownlinkSlotRepository:
         :param slot: DownlinkSlot domain object
         :return: True only if the number of created rows is 1
         """
-        
-        if not isinstance(slot.status, SlotStatus):
-            raise ValueError("status must be SlotStatus enum")
-        
-        spec = QuerySpec(
-            sql=f"""
-                INSERT OR IGNORE INTO {self.table_name}
-                (wk,doy,wdy,bot_utc,eot_utc,ant,status)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-            operation=OperationType.WRITE,
-            params=(slot.wk, slot.doy, slot.wdy, slot.bot_utc, slot.eot_utc, slot.ant, slot.status.value)
-        )
+        try:
+            if not isinstance(slot.status, SlotStatus):
+                raise ValueError("status must be SlotStatus enum")
+            
+            spec = QuerySpec(
+                sql=f"""
+                    INSERT OR IGNORE INTO {self.table_name}
+                    (wk,doy,wdy,bot_utc,eot_utc,ant,status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                operation=OperationType.WRITE,
+                params=(slot.wk, slot.doy, slot.wdy, slot.bot_utc, slot.eot_utc, slot.ant, slot.status.value)
+            )
 
-        result = self._executor.execute(spec)
+            result = self._executor.execute(spec)
 
-        return result.rows_affected == 1
+            return result.rows_affected == 1
+        except Exception:
+            logger.exception("Failed to create slot")
+            raise
     
     def mark_expired_pending_as_missed(self, now: str) -> int:
         """
@@ -91,25 +97,28 @@ class DownlinkSlotRepository:
         :param now: Current timestamp (UTC, ISO format) used as cutoff.
         :return: Number of rows updated (slots marked as MISSED).
         """
-
-        spec = QuerySpec(
-            sql=f"""
-                UPDATE {self.table_name}
-                SET status = ?
-                WHERE eot_utc < ?
-                AND status = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(
-                SlotStatus.MISSED.value,
-                now,
-                SlotStatus.PENDING.value
+        try:
+            spec = QuerySpec(
+                sql=f"""
+                    UPDATE {self.table_name}
+                    SET status = ?
+                    WHERE eot_utc < ?
+                    AND status = ?
+                """,
+                operation=OperationType.WRITE,
+                params=(
+                    SlotStatus.MISSED.value,
+                    now,
+                    SlotStatus.PENDING.value
+                )
             )
-        )
 
-        result = self._executor.execute(spec)
+            result = self._executor.execute(spec)
 
-        return result.rows_affected
+            return result.rows_affected
+        except Exception:
+            logger.exception("Failed to mark expired pending slots as missed")
+            raise
     
     def mark_expired_active_as_missed(self, now: str) -> int:
         """
@@ -126,25 +135,28 @@ class DownlinkSlotRepository:
         :param now: Current timestamp in ISO UTC format.
         :return: Number of slots updated.
         """
-
-        spec = QuerySpec(
-            sql=f"""
-                UPDATE {self.table_name}
-                SET status = ?
-                WHERE eot_utc < ?
-                AND status = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(
-                SlotStatus.MISSED.value,
-                now,
-                SlotStatus.ACTIVE.value
+        try:
+            spec = QuerySpec(
+                sql=f"""
+                    UPDATE {self.table_name}
+                    SET status = ?
+                    WHERE eot_utc < ?
+                    AND status = ?
+                """,
+                operation=OperationType.WRITE,
+                params=(
+                    SlotStatus.MISSED.value,
+                    now,
+                    SlotStatus.ACTIVE.value
+                )
             )
-        )
 
-        result = self._executor.execute(spec)
+            result = self._executor.execute(spec)
 
-        return result.rows_affected
+            return result.rows_affected
+        except Exception:
+            logger.exception("Failed to mark expired active slots as missed")
+            raise
 
     def get_next_claimable_slot(self, now: str) -> Optional[DownlinkSlot]:
         """
@@ -197,31 +209,34 @@ class DownlinkSlotRepository:
         :param slot: Slot whose identity is used for lookup
         :return: updated slot domain entity (with updated slot) if successful
         """
-        
-        if not isinstance(newStatus, SlotStatus):
-            raise ValueError("status must be SlotStatus enum")
-        
-        spec = QuerySpec(
-            sql = f"""
-                UPDATE {self.table_name}
-                SET status = ?
-                WHERE wk = ?
-                AND doy = ?
-                AND wdy = ?
-                AND bot_utc = ?
-                """,
-            operation = OperationType.WRITE,
-            params = (newStatus.value,
-                      slot.wk,
-                      slot.doy,
-                      slot.wdy,
-                      slot.bot_utc) 
-        )
+        try:
+            if not isinstance(newStatus, SlotStatus):
+                raise ValueError("status must be SlotStatus enum")
+            
+            spec = QuerySpec(
+                sql = f"""
+                    UPDATE {self.table_name}
+                    SET status = ?
+                    WHERE wk = ?
+                    AND doy = ?
+                    AND wdy = ?
+                    AND bot_utc = ?
+                    """,
+                operation = OperationType.WRITE,
+                params = (newStatus.value,
+                        slot.wk,
+                        slot.doy,
+                        slot.wdy,
+                        slot.bot_utc) 
+            )
 
-        result = self._executor.execute(spec)
+            result = self._executor.execute(spec)
 
-        if result.rows_affected == 1:
-            return replace(slot, status=newStatus)
+            if result.rows_affected == 1:
+                return replace(slot, status=newStatus)
+        except Exception:
+            logger.exception("Failed to update slot status")
+            raise
     
     def delete_slot(self, slot: DownlinkSlot) -> bool:
         """
@@ -229,47 +244,53 @@ class DownlinkSlotRepository:
         :param slot: Slot whose identity is used for lookup
         :return: True only if exactly one row was delete
         """
+        try:
+            spec = QuerySpec(
+                sql = f"""
+                    DELETE FROM {self.table_name}
+                    WHERE wk = ?
+                    AND doy = ?
+                    AND wdy = ?
+                    AND bot_utc = ?
+                    """,
+                operation=OperationType.WRITE,
+                params=(slot.wk,
+                        slot.doy,
+                        slot.wdy,
+                        slot.bot_utc)
+            )
+            
+            result = self._executor.execute(spec)
 
-        spec = QuerySpec(
-            sql = f"""
-                DELETE FROM {self.table_name}
-                WHERE wk = ?
-                AND doy = ?
-                AND wdy = ?
-                AND bot_utc = ?
-                """,
-            operation=OperationType.WRITE,
-            params=(slot.wk,
-                    slot.doy,
-                    slot.wdy,
-                    slot.bot_utc)
-        )
-        
-        result = self._executor.execute(spec)
-
-        return result.rows_affected == 1
+            return result.rows_affected == 1
+        except Exception:
+            logger.exception("Failed to delete slot")
+            raise
     
     def delete_completed_slots(self) -> int:
         """
         Deletes all slots whose status is `DONE`.
         :return: Number of rows deleted
         """
-
-        spec = QuerySpec(
-            sql=f"""
-                DELETE FROM {self.table_name}
-                WHERE status = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(
-                SlotStatus.DONE.value
+        try:
+            spec = QuerySpec(
+                sql=f"""
+                    DELETE FROM {self.table_name}
+                    WHERE status = ?
+                """,
+                operation=OperationType.WRITE,
+                params=(
+                    SlotStatus.DONE.value
+                )
             )
-        )
 
-        result = self._executor.execute(spec)
+            result = self._executor.execute(spec)
 
-        return result.rows_affected
-    
+            return result.rows_affected
+        except Exception:
+            logger.exception("Failed to delete completed slots")
+            raise
+
     def exists(self, identity: tuple) -> bool:
         """
         Checks if slot exists in the DB or not

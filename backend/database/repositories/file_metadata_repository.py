@@ -4,6 +4,9 @@ from typing import Optional, ClassVar
 from backend.database.domain.file_metadata import FileMetadata
 from backend.database.infrastructure.query_spec import QuerySpec
 from backend.database.infrastructure.query_executor import QueryExecutor
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FileMetadataRepository:
     """
@@ -78,38 +81,41 @@ class FileMetadataRepository:
         :param roll: frame roll if any
         :return: Returns True only if the number of created rows is 1
         """
-        
-        spec = QuerySpec(
-            sql = f"""
-                INSERT OR IGNORE INTO {self.table_name}
-                (raw_file_name,
-                raw_file_hash,
-                datetime_of_observation,
-                last_modified_utc,
-                instrument, 
-                exposure_time, 
-                width, 
-                height, 
-                roll)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-            operation=OperationType.WRITE,
-            params=(
-                    raw_file_name, 
-                    raw_file_hash, 
+        try:
+            spec = QuerySpec(
+                sql = f"""
+                    INSERT OR IGNORE INTO {self.table_name}
+                    (raw_file_name,
+                    raw_file_hash,
                     datetime_of_observation,
                     last_modified_utc,
-                    instrument.value,
+                    instrument, 
                     exposure_time, 
                     width, 
                     height, 
-                    roll
-                )
-        )
-        
-        result = self._executor.execute(spec)
-        
-        return result.rows_affected == 1
+                    roll)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                operation=OperationType.WRITE,
+                params=(
+                        raw_file_name, 
+                        raw_file_hash, 
+                        datetime_of_observation,
+                        last_modified_utc,
+                        instrument.value,
+                        exposure_time, 
+                        width, 
+                        height, 
+                        roll
+                    )
+            )
+            
+            result = self._executor.execute(spec)
+            
+            return result.rows_affected == 1
+        except Exception:
+            logger.exception("Error creating metadata")
+            return False
     
     def read_metadata(self, raw_file_name: str) -> Optional[FileMetadata]:
         """
@@ -144,23 +150,26 @@ class FileMetadataRepository:
         :param file: FileMetadata domain entity containing updated hash
         :return: True only if exactly one row was updated
         """
-
-        spec = QuerySpec(
-            sql=f"""
-                UPDATE {self.table_name}
-                SET raw_file_hash = ?
-                WHERE raw_file_name = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(
-                file.raw_file_hash,
-                file.raw_file_name
+        try:
+            spec = QuerySpec(
+                sql=f"""
+                    UPDATE {self.table_name}
+                    SET raw_file_hash = ?
+                    WHERE raw_file_name = ?
+                """,
+                operation=OperationType.WRITE,
+                params=(
+                    file.raw_file_hash,
+                    file.raw_file_name
+                )
             )
-        )
 
-        result = self._executor.execute(spec)
+            result = self._executor.execute(spec)
 
-        return result.rows_affected == 1
+            return result.rows_affected == 1
+        except Exception:
+            logger.exception("Error updating file hash")
+            return False
 
     def delete_metadata(self, file: FileMetadata) -> bool:
         """
@@ -169,20 +178,23 @@ class FileMetadataRepository:
         :param file: file domain entity
         :return : returns boolean value, True when deletion happened
         """
+        try:
+            spec=QuerySpec(
+                sql=f"""
+                    DELETE FROM {self.table_name}
+                    WHERE raw_file_name = ?
+                """,
+                operation=OperationType.WRITE,
+                params=(file.raw_file_name,)
+            )
 
-        spec=QuerySpec(
-            sql=f"""
-                DELETE FROM {self.table_name}
-                WHERE raw_file_name = ?
-            """,
-            operation=OperationType.WRITE,
-            params=(file.raw_file_name,)
-        )
+            result = self._executor.execute(spec)
 
-        result = self._executor.execute(spec)
+            return result.rows_affected == 1
+        except Exception:
+            logger.exception("Error deleting metadata")
+            return False
 
-        return result.rows_affected == 1
-    
     def exists_by_filename(self, raw_file_name: str) -> bool:
         """
         Checks if metadata entry exists
@@ -365,43 +377,46 @@ class FileMetadataRepository:
         :param files: List of FileMetadata domain entities to insert.
         :return: Number of rows successfully inserted.
         """
+        try:
+            if not files:
+                return 0
 
-        if not files:
+            spec = QuerySpec(
+                sql=f"""
+                    INSERT OR IGNORE INTO {self.table_name} (
+                        raw_file_name,
+                        datetime_of_observation,
+                        last_modified_utc,
+                        instrument,
+                        exposure_time,
+                        width,
+                        height,
+                        roll
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                operation=OperationType.WRITE,
+                params=[
+                    (
+                        file.raw_file_name,
+                        file.datetime_of_observation,
+                        file.last_modified_utc,
+                        file.instrument.value,
+                        file.exposure_time,
+                        file.width,
+                        file.height,
+                        file.roll
+                    )
+                    for file in files
+                ]
+            )
+
+            result = self._executor.execute_many(spec)
+
+            return result.rows_affected
+        except Exception:
+            logger.exception("Error in bulk creating metadata")
             return 0
-
-        spec = QuerySpec(
-            sql=f"""
-                INSERT OR IGNORE INTO {self.table_name} (
-                    raw_file_name,
-                    datetime_of_observation,
-                    last_modified_utc,
-                    instrument,
-                    exposure_time,
-                    width,
-                    height,
-                    roll
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            operation=OperationType.WRITE,
-            params=[
-                (
-                    file.raw_file_name,
-                    file.datetime_of_observation,
-                    file.last_modified_utc,
-                    file.instrument.value,
-                    file.exposure_time,
-                    file.width,
-                    file.height,
-                    file.roll
-                )
-                for file in files
-            ]
-        )
-
-        result = self._executor.execute_many(spec)
-
-        return result.rows_affected
 
     def get_latest_last_modified(self, instrument: Instrument) -> Optional[str]:
         """
