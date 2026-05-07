@@ -9,14 +9,14 @@
         <meta name="description" content="LASCO comet processing pipeline">
       
       
-        <meta name="author" content="Anand">
+        <meta name="author" content="Anand Krishna">
       
       
       
-        <link rel="prev" href="../../pipeline/">
+        <link rel="prev" href="../file_metadata/">
       
       
-        <link rel="next" href="../downlink_slot/">
+        <link rel="next" href="../../services/slot_service/">
       
       
         
@@ -68,6 +68,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#processedfile" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -327,7 +332,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../../database.md" class="md-nav__link">
+      <a href="../../processing_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processing Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../database_schema/" class="md-nav__link">
         
   
   
@@ -408,42 +441,6 @@
                 
   
   
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Processed File
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
   
   
     <li class="md-nav__item">
@@ -491,6 +488,302 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processed File
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processed File
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle Diagram
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-guarantees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Guarantees
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Guarantees">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#immutable-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immutable Transitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retry-safe-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retry-Safe Processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terminal-state-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terminal State Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#state-categories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Categories
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#c3-processing-relationship" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C3 Processing Relationship
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProcessedFile
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ProcessedFile">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.can_retry_downloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        can_retry_downloading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.can_retry_processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        can_retry_processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.can_transition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        can_transition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.from_row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_row
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.is_download_complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_download_complete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.is_terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_terminal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.transition_to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transition_to
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -613,7 +906,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../services/download_service.md" class="md-nav__link">
+      <a href="../../services/download_file_service/" class="md-nav__link">
         
   
   
@@ -641,7 +934,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../services/process_service.md" class="md-nav__link">
+      <a href="../../services/process_file_service/" class="md-nav__link">
         
   
   
@@ -723,7 +1016,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../repositories/downlink_slot_repository.md" class="md-nav__link">
+      <a href="../../repositories/downlink_slot_repository/" class="md-nav__link">
         
   
   
@@ -751,7 +1044,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../repositories/file_metadata_repository.md" class="md-nav__link">
+      <a href="../../repositories/file_metadata_repository/" class="md-nav__link">
         
   
   
@@ -779,7 +1072,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../repositories/processed_file_repository.md" class="md-nav__link">
+      <a href="../../repositories/processed_file_repository/" class="md-nav__link">
         
   
   
@@ -861,7 +1154,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../../infrastructure/query_executor.md" class="md-nav__link">
+      <a href="../../infrastructure/database_base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../infrastructure/query_executor/" class="md-nav__link">
         
   
   
@@ -889,7 +1210,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../infrastructure/query_spec.md" class="md-nav__link">
+      <a href="../../infrastructure/query_spec/" class="md-nav__link">
         
   
   
@@ -897,34 +1218,6 @@
     
   
     Query Spec
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../infrastructure/database_base.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Database Base
   
 
     
@@ -962,6 +1255,237 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle Diagram
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-guarantees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Guarantees
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Guarantees">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#immutable-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immutable Transitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retry-safe-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retry-Safe Processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terminal-state-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terminal State Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#state-categories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Categories
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#c3-processing-relationship" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C3 Processing Relationship
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProcessedFile
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ProcessedFile">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.can_retry_downloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        can_retry_downloading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.can_retry_processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        can_retry_processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.can_transition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        can_transition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.from_row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_row
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.is_download_complete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_download_complete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.is_terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_terminal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend.database.domain.processed_file.ProcessedFile.transition_to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transition_to
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -978,9 +1502,585 @@
 
 
 
-  <h1>Processed File</h1>
+<h1 id="processedfile">ProcessedFile<a class="headerlink" href="#processedfile" title="Permanent link">&para;</a></h1>
+<p><code>ProcessedFile</code> is the central lifecycle entity responsible for tracking
+the complete state evolution of LASCO image files throughout the pipeline.</p>
+<p>It models:</p>
+<ul>
+<li>raw file discovery</li>
+<li>downloading</li>
+<li>processing readiness</li>
+<li>image processing execution</li>
+<li>retry handling</li>
+<li>terminal completion states</li>
+</ul>
+<hr />
+<h2 id="responsibilities">Responsibilities<a class="headerlink" href="#responsibilities" title="Permanent link">&para;</a></h2>
+<p>The entity maintains lifecycle consistency for:</p>
+<ul>
+<li>raw FITS files</li>
+<li>processed image outputs</li>
+<li>retry attempts</li>
+<li>processing timestamps</li>
+<li>failure recovery</li>
+<li>predecessor relationships (C3 running difference)</li>
+</ul>
+<hr />
+<h2 id="lifecycle-diagram">Lifecycle Diagram<a class="headerlink" href="#lifecycle-diagram" title="Permanent link">&para;</a></h2>
+<div align="center">
+    <img src="../lifecycle/processed_file_lifecycle.svg" width="1000">
+</div>
+
+<hr />
+<h2 id="core-guarantees">Core Guarantees<a class="headerlink" href="#core-guarantees" title="Permanent link">&para;</a></h2>
+<h3 id="immutable-transitions">Immutable Transitions<a class="headerlink" href="#immutable-transitions" title="Permanent link">&para;</a></h3>
+<p>All lifecycle transitions return a new immutable entity instance.</p>
+<p>This prevents accidental mutation and ensures predictable state evolution.</p>
+<h3 id="retry-safe-processing">Retry-Safe Processing<a class="headerlink" href="#retry-safe-processing" title="Permanent link">&para;</a></h3>
+<p>The entity explicitly tracks:</p>
+<ul>
+<li>download retry count</li>
+<li>processing retry count</li>
+<li>last retry timestamps</li>
+</ul>
+<p>This allows recovery-oriented workflows without duplicating work.</p>
+<h3 id="terminal-state-enforcement">Terminal State Enforcement<a class="headerlink" href="#terminal-state-enforcement" title="Permanent link">&para;</a></h3>
+<p>Terminal states prevent further transitions once processing is complete
+or permanently abandoned.</p>
+<p>Terminal states include:</p>
+<ul>
+<li><code>PROCESSED</code></li>
+<li><code>SKIPPED</code></li>
+<li><code>IGNORE</code></li>
+<li><code>ABANDONED</code></li>
+</ul>
+<hr />
+<h2 id="state-categories">State Categories<a class="headerlink" href="#state-categories" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>States</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Discovery</td>
+<td><code>DISCOVERED</code></td>
+</tr>
+<tr>
+<td>Downloading</td>
+<td><code>DOWNLOADING</code>, <code>DOWNLOADED</code>, <code>DOWNLOADING_FAILED</code></td>
+</tr>
+<tr>
+<td>Processing Preparation</td>
+<td><code>READY</code></td>
+</tr>
+<tr>
+<td>Processing</td>
+<td><code>PROCESSING</code>, <code>PROCESSED</code>, <code>PROCESSING_FAILED</code></td>
+</tr>
+<tr>
+<td>Terminal</td>
+<td><code>SKIPPED</code>, <code>IGNORE</code>, <code>ABANDONED</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="c3-processing-relationship">C3 Processing Relationship<a class="headerlink" href="#c3-processing-relationship" title="Permanent link">&para;</a></h2>
+<p>For LASCO C3 processing, the entity also stores:</p>
+<ul>
+<li><code>previous_file_name</code></li>
+</ul>
+<p>This enables running-difference processing between sequential observations.</p>
+<hr />
+<h2 id="design-notes">Design Notes<a class="headerlink" href="#design-notes" title="Permanent link">&para;</a></h2>
+<p>The lifecycle model is intentionally deterministic and state-driven.</p>
+<p>The processing pipeline never infers workflow state from filesystem
+conditions alone — all orchestration decisions are derived from
+persisted lifecycle state.</p>
+<p>This provides:</p>
+<ul>
+<li>resumability</li>
+<li>idempotent execution</li>
+<li>crash recovery</li>
+<li>workflow observability</li>
+</ul>
+<hr />
+<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 
 
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="backend.database.domain.processed_file.ProcessedFile" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">backend.database.domain.processed_file.ProcessedFile</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#backend.database.domain.processed_file.ProcessedFile" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Domain entity representing the processing state of a raw image file.</p>
+<p>Tracks the transformation of a raw file into its processed output,
+including hash integrity, storage paths, retry attempts, and lifecycle
+status within the pipeline.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.raw_file_name">raw_file_name</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Original raw file name - primary key.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.raw_file_hash">raw_file_hash</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Content hash of the original raw file.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.raw_file_path">raw_file_path</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Storage path of the raw file.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.raw_file_size">raw_file_size</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Size of the raw file in bytes.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.processed_file_name">processed_file_name</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Processed file name.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.processed_file_hash">processed_file_hash</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Content hash of the processed file.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.processed_file_path">processed_file_path</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Storage path of the processed file.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.processed_file_size">processed_file_size</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Size of the processed file in bytes.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.datetime_of_observation">datetime_of_observation</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>date time of observation</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.instrument">instrument</span></code></td>
+            <td>
+                  <code><span title="backend.util.enums.Instrument">Instrument</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Instrument used for obesrvation</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.status">status</span></code></td>
+            <td>
+                  <code><span title="backend.util.enums.FileStatus">FileStatus</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Current processing lifecycle state.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.error_message">error_message</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Error details if processing failed.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.downloaded_at">downloaded_at</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>UTC timestamp when file downloaded.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.last_downloading_attempt_at">last_downloading_attempt_at</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>UTC timestamp of the most recent downloading attempt.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.downloading_attempt_count">downloading_attempt_count</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of downloading attempts made.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.processed_at">processed_at</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>UTC timestamp when processing completed.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.last_processing_attempt_at">last_processing_attempt_at</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>UTC timestamp of the most recent processing attempt.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.processing_attempt_count">processing_attempt_count</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of processing attempts made.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="backend.database.domain.processed_file.ProcessedFile.previous_file_name">previous_file_name</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>previous file name which will help in processing</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="invariants" open>
+  <summary>Invariants</summary>
+  <ul>
+<li>status value is one of the FileStatus enums</li>
+</ul>
+</details>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.database.domain.processed_file.ProcessedFile.can_retry_downloading" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">can_retry_downloading</span>
+
+
+<a href="#backend.database.domain.processed_file.ProcessedFile.can_retry_downloading" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">can_retry_downloading</span><span class="p">(</span><span class="n">max_downloading_attempts</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Determines whether downloading can be retried based on attempt limits
+:param max_downloading_attempts: Maximum allowed download attempts.
+:return: True if download retry is allowed False otherwise.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.database.domain.processed_file.ProcessedFile.can_retry_processing" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">can_retry_processing</span>
+
+
+<a href="#backend.database.domain.processed_file.ProcessedFile.can_retry_processing" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">can_retry_processing</span><span class="p">(</span><span class="n">max_processing_attempts</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Determines whether processing can be retried based on attempt limits
+:param max_processing_attempts: Maximum allowed processing attempts.
+:returns: True if processing retry is allowed False otherwise.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.database.domain.processed_file.ProcessedFile.can_transition" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">can_transition</span>
+
+
+<a href="#backend.database.domain.processed_file.ProcessedFile.can_transition" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">can_transition</span><span class="p">(</span><span class="n">new_status</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Checks if file can legally transition from its current status
+to given new status based on the lifecycle state machine.</p>
+<p>:param new_status: Target status to validate transition against
+:return: True if transition is allowed. False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.database.domain.processed_file.ProcessedFile.from_row" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">from_row</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#backend.database.domain.processed_file.ProcessedFile.from_row" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">from_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Creates a ProcessedFile domain entity from a database row.</p>
+<p>:param row: Database row containing processed_file table data.
+:return: Constructed domain entity populated from DB row.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.database.domain.processed_file.ProcessedFile.identity" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">identity</span>
+
+
+<a href="#backend.database.domain.processed_file.ProcessedFile.identity" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">identity</span><span class="p">()</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Returns the unique identity of the processed file domain entity.</p>
+<p>The raw file name acts as the natural identity since it uniquely
+represents the source file across the pipeline.</p>
+<p>:returns: Raw file name (primary identity).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.database.domain.processed_file.ProcessedFile.is_download_complete" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">is_download_complete</span>
+
+
+<a href="#backend.database.domain.processed_file.ProcessedFile.is_download_complete" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">is_download_complete</span><span class="p">()</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Checks whether the raw file has been successfully downloaded
+and is ready for further pipeline decisions.</p>
+<p>A file is considered download complete if it has reached
+<code>DOWNLOADED</code> state.</p>
+<p>:return: True if file status is DOWNLOADED, False otherwise.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.database.domain.processed_file.ProcessedFile.is_terminal" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">is_terminal</span>
+
+
+<a href="#backend.database.domain.processed_file.ProcessedFile.is_terminal" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">is_terminal</span><span class="p">()</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>checks if current status of the file is terminal lifecycle
+status or not.
+Terminal states indicate no further processing or retries will
+occur.</p>
+<p>:return: True if file is in terminal state. False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.database.domain.processed_file.ProcessedFile.transition_to" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">transition_to</span>
+
+
+<a href="#backend.database.domain.processed_file.ProcessedFile.transition_to" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">transition_to</span><span class="p">(</span><span class="n">new_status</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Creates a new immutable ProcessedFile instance with updated status
+after validating that the transition is allowed.</p>
+<p>:param new_status: Target lifecycle status
+:return: New instance with updated status
+Raises:
+    ValueError: If transition is not allowed by the lifecycle rules.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 

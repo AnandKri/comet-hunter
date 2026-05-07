@@ -9,10 +9,14 @@
         <meta name="description" content="LASCO comet processing pipeline">
       
       
-        <meta name="author" content="Anand">
+        <meta name="author" content="Anand Krishna">
       
       
       
+        <link rel="prev" href="../processing_pipeline/">
+      
+      
+        <link rel="next" href="../domain/downlink_slot/">
       
       
         
@@ -23,7 +27,7 @@
     
     
       
-        <title>Database Schema - Comet Hunter</title>
+        <title>Database - Comet Hunter</title>
       
     
     
@@ -102,7 +106,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Database Schema
+              Database
             
           </span>
         </div>
@@ -222,18 +226,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -254,7 +260,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -328,7 +334,62 @@
   
   
     <li class="md-nav__item">
-      <a href="../database.md" class="md-nav__link">
+      <a href="../processing_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processing Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -344,6 +405,187 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tables-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tables Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-downlink_slot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. downlink_slot
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. downlink_slot">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#indexes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Indexes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-file_metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. file_metadata
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. file_metadata">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schema_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#indexes_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Indexes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-processed_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. processed_file
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. processed_file">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schema_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#indexes_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Indexes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -410,34 +652,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../domain/processed_file/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Processed File
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../domain/downlink_slot/" class="md-nav__link">
         
   
@@ -474,6 +688,34 @@
     
   
     File Metadata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../domain/processed_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processed File
   
 
     
@@ -604,7 +846,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../services/download_service.md" class="md-nav__link">
+      <a href="../services/download_file_service/" class="md-nav__link">
         
   
   
@@ -632,7 +874,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../services/process_service.md" class="md-nav__link">
+      <a href="../services/process_file_service/" class="md-nav__link">
         
   
   
@@ -714,7 +956,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../repositories/downlink_slot_repository.md" class="md-nav__link">
+      <a href="../repositories/downlink_slot_repository/" class="md-nav__link">
         
   
   
@@ -742,7 +984,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../repositories/file_metadata_repository.md" class="md-nav__link">
+      <a href="../repositories/file_metadata_repository/" class="md-nav__link">
         
   
   
@@ -770,7 +1012,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../repositories/processed_file_repository.md" class="md-nav__link">
+      <a href="../repositories/processed_file_repository/" class="md-nav__link">
         
   
   
@@ -852,7 +1094,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../infrastructure/query_executor.md" class="md-nav__link">
+      <a href="../infrastructure/database_base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../infrastructure/query_executor/" class="md-nav__link">
         
   
   
@@ -880,7 +1150,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../infrastructure/query_spec.md" class="md-nav__link">
+      <a href="../infrastructure/query_spec/" class="md-nav__link">
         
   
   
@@ -888,34 +1158,6 @@
     
   
     Query Spec
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../infrastructure/database_base.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Database Base
   
 
     

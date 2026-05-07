@@ -9,7 +9,7 @@
         <meta name="description" content="LASCO comet processing pipeline">
       
       
-        <meta name="author" content="Anand">
+        <meta name="author" content="Anand Krishna">
       
       
       
@@ -260,10 +260,93 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#core-capabilities" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        Core Capabilities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Processing Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Design Principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technologies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technologies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Goals
       
     </span>
   </a>
@@ -388,7 +471,35 @@
   
   
     <li class="md-nav__item">
-      <a href="database.md" class="md-nav__link">
+      <a href="processing_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processing Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="database_schema/" class="md-nav__link">
         
   
   
@@ -470,34 +581,6 @@
   
   
     <li class="md-nav__item">
-      <a href="domain/processed_file/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Processed File
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="domain/downlink_slot/" class="md-nav__link">
         
   
@@ -534,6 +617,34 @@
     
   
     File Metadata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="domain/processed_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processed File
   
 
     
@@ -664,7 +775,7 @@
   
   
     <li class="md-nav__item">
-      <a href="services/download_service.md" class="md-nav__link">
+      <a href="services/download_file_service/" class="md-nav__link">
         
   
   
@@ -692,7 +803,7 @@
   
   
     <li class="md-nav__item">
-      <a href="services/process_service.md" class="md-nav__link">
+      <a href="services/process_file_service/" class="md-nav__link">
         
   
   
@@ -774,7 +885,7 @@
   
   
     <li class="md-nav__item">
-      <a href="repositories/downlink_slot_repository.md" class="md-nav__link">
+      <a href="repositories/downlink_slot_repository/" class="md-nav__link">
         
   
   
@@ -802,7 +913,7 @@
   
   
     <li class="md-nav__item">
-      <a href="repositories/file_metadata_repository.md" class="md-nav__link">
+      <a href="repositories/file_metadata_repository/" class="md-nav__link">
         
   
   
@@ -830,7 +941,7 @@
   
   
     <li class="md-nav__item">
-      <a href="repositories/processed_file_repository.md" class="md-nav__link">
+      <a href="repositories/processed_file_repository/" class="md-nav__link">
         
   
   
@@ -912,7 +1023,35 @@
   
   
     <li class="md-nav__item">
-      <a href="infrastructure/query_executor.md" class="md-nav__link">
+      <a href="infrastructure/database_base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="infrastructure/query_executor/" class="md-nav__link">
         
   
   
@@ -940,7 +1079,7 @@
   
   
     <li class="md-nav__item">
-      <a href="infrastructure/query_spec.md" class="md-nav__link">
+      <a href="infrastructure/query_spec/" class="md-nav__link">
         
   
   
@@ -948,34 +1087,6 @@
     
   
     Query Spec
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="infrastructure/database_base.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Database Base
   
 
     
@@ -1023,10 +1134,93 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#core-capabilities" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        Core Capabilities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Processing Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Design Principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technologies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technologies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Goals
       
     </span>
   </a>
@@ -1051,20 +1245,135 @@
 
 
 <h1 id="comet-hunter">Comet Hunter<a class="headerlink" href="#comet-hunter" title="Permanent link">&para;</a></h1>
-<p>Pipeline for:</p>
+<p>Comet Hunter is a modular data pipeline for ingesting, tracking, downloading, and processing LASCO coronagraph imagery from the SOHO mission.</p>
+<p>The system is designed around reliability, deterministic state transitions, and idempotent execution for long-running astronomical data workflows.</p>
+<hr />
+<h2 id="core-capabilities">Core Capabilities<a class="headerlink" href="#core-capabilities" title="Permanent link">&para;</a></h2>
 <ul>
-<li>LASCO metadata synchronization</li>
-<li>FITS file downloading</li>
-<li>C2/C3 image processing</li>
-<li>Lifecycle/state tracking</li>
-<li>SQLite-backed persistence</li>
+<li>Synchronization of LASCO metadata and downlink schedules</li>
+<li>Automated FITS file discovery and downloading</li>
+<li>Image processing for:</li>
+<li><strong>C2</strong> → unsharp masking</li>
+<li><strong>C3</strong> → running difference</li>
+<li>Persistent lifecycle tracking using SQLite</li>
+<li>Concurrent download and processing execution</li>
+<li>Retry-safe and recovery-oriented workflows</li>
 </ul>
-<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<hr />
+<h2 id="pipeline-overview">Pipeline Overview<a class="headerlink" href="#pipeline-overview" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Downlink Slots
+       ↓
+Metadata Synchronization
+       ↓
+File Discovery
+       ↓
+FITS Download
+       ↓
+READY State Resolution
+       ↓
+Image Processing
+       ↓
+Processed Outputs
+</code></pre></div>
+<hr />
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<p>The project follows a layered architecture with clear separation of concerns:</p>
+<div class="highlight"><pre><span></span><code>Domain
+  ↓
+Repositories
+  ↓
+Services
+  ↓
+Infrastructure
+</code></pre></div>
+<h3 id="layers">Layers<a class="headerlink" href="#layers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domain</td>
+<td>Immutable business entities and lifecycle rules</td>
+</tr>
+<tr>
+<td>Repository</td>
+<td>SQLite persistence and query abstraction</td>
+</tr>
+<tr>
+<td>Service</td>
+<td>Pipeline orchestration and workflow execution</td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td>Database connection and execution layer</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="processing-lifecycle">Processing Lifecycle<a class="headerlink" href="#processing-lifecycle" title="Permanent link">&para;</a></h2>
+<p>Files move through a deterministic lifecycle:</p>
+<div class="highlight"><pre><span></span><code>DISCOVERED
+    ↓
+DOWNLOADING
+    ↓
+DOWNLOADED
+    ↓
+READY
+    ↓
+PROCESSING
+    ↓
+PROCESSED
+</code></pre></div>
+<p>Recovery and retry states are also supported for fault tolerance and resumability.</p>
+<hr />
+<h2 id="key-design-principles">Key Design Principles<a class="headerlink" href="#key-design-principles" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Slot-driven ingestion</li>
-<li>Idempotent processing</li>
-<li>Retry-safe workflows</li>
-<li>Concurrent downloading and processing</li>
+<li><strong>Idempotent execution</strong></li>
+<li>
+<p>Re-running workflows does not duplicate processing.</p>
+</li>
+<li>
+<p><strong>State-driven orchestration</strong></p>
+</li>
+<li>
+<p>File transitions are strictly controlled through lifecycle rules.</p>
+</li>
+<li>
+<p><strong>Recovery-oriented workflows</strong></p>
+</li>
+<li>
+<p>Stale downloads and processing tasks can be recovered safely.</p>
+</li>
+<li>
+<p><strong>Concurrent execution</strong></p>
+</li>
+<li>
+<p>Parallel downloading and processing using worker pools.</p>
+</li>
+<li>
+<p><strong>Repository abstraction</strong></p>
+</li>
+<li>Database access is centralized through query specifications and executors.</li>
+</ul>
+<hr />
+<h2 id="technologies">Technologies<a class="headerlink" href="#technologies" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Python</li>
+<li>SQLite</li>
+<li>FastAPI</li>
+</ul>
+<hr />
+<h2 id="project-goals">Project Goals<a class="headerlink" href="#project-goals" title="Permanent link">&para;</a></h2>
+<p>Comet Hunter is intended to serve as:</p>
+<ul>
+<li>A production-style astronomical data pipeline</li>
+<li>A reliable FITS ingestion and processing framework</li>
+<li>A foundation for future comet detection and analysis workflows</li>
+<li>A reference implementation for state-driven scientific processing systems</li>
 </ul>
 
 
