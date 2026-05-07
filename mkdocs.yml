@@ -1,6 +1,6 @@
 site_name: Comet Hunter
 site_description: LASCO comet processing pipeline
-site_author: Anand
+site_author: Anand Krishna
 
 theme:
   name: material
@@ -32,18 +32,19 @@ nav:
   - Architecture:
       - Overview: architecture.md
       - Pipeline: pipeline.md
-      - Database: database.md
+      - Processing Pipeline: processing_pipeline.md
+      - Database: database_schema.md
 
   - Domain:
-      - Processed File: domain/processed_file.md
       - Downlink Slot: domain/downlink_slot.md
       - File Metadata: domain/file_metadata.md
+      - Processed File: domain/processed_file.md
 
   - Services:
       - Slot Service: services/slot_service.md
       - Metadata Service: services/metadata_service.md
-      - Download Service: services/download_service.md
-      - Process Service: services/process_service.md
+      - Download Service: services/download_file_service.md
+      - Process Service: services/process_file_service.md
 
   - Repositories:
       - Slot Repository: repositories/downlink_slot_repository.md
@@ -51,6 +52,6 @@ nav:
       - Processed Repository: repositories/processed_file_repository.md
 
   - Infrastructure:
+      - Database Base: infrastructure/database_base.md
       - Query Executor: infrastructure/query_executor.md
       - Query Spec: infrastructure/query_spec.md
-      - Database Base: infrastructure/database_base.md
