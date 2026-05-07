@@ -29,9 +29,7 @@ The entity maintains lifecycle consistency for:
 
 ## Lifecycle Diagram
 
-<div align="center">
-    <img src="../lifecycle/processed_file_lifecycle.svg" width="1000">
-</div>
+![Processed File Lifecycle](../lifecycle/processed_file_lifecycle.svg)
 
 ---
 
