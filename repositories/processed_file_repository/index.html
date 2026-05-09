@@ -1477,7 +1477,7 @@ of which files are processed and which are not.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Checks if file status is valid or not.
+        <p>Checks if file status is enum or not.
 creates the file details to a row in the table</p>
 <p>:param raw_file_name: raw file name, as appears in img-hdr.txt - primary key
 :param raw_file_hash: hash value of unprocessed file
@@ -1548,7 +1548,8 @@ on status and datetime_of_observation.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Query to create <code>processed_file</code> table.</p>
+        <p>Query to create <code>processed_file</code> table.
+timestamps are stored as ISO-8601 UTC strings</p>
 
 
     </div>
@@ -1614,8 +1615,8 @@ on status and datetime_of_observation.</p>
 
         <p>get downloaded files by instrument and download_at time window</p>
 <p>:param instrument: instrument used for observation
-:param download_start_utc: start timestamp (ISO)
-:param download_end_utc: end timestamp (ISO)
+:param download_start_utc: start timestamp (UTC)
+:param download_end_utc: end timestamp (UTC)
 :return: list of process file entities</p>
 
 

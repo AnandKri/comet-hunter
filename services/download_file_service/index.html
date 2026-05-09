@@ -1265,8 +1265,8 @@
 
         <p>Download files within a given downlink time frame and instrument.</p>
 <p>:param instrument: Instrument used for observation
-:param downlink_start_utc: start timestamp (ISO)
-:param downlink_end_utc: end timestamp (ISO)
+:param downlink_start_utc: start timestamp 
+:param downlink_end_utc: end timestamp
 :return: number of files downloaded successfully.</p>
 
 
@@ -1289,8 +1289,8 @@
 
         <p>download files within an observation time period and instrument.</p>
 <p>:param instrument: Instrument used for observation
-:param observation_start_utc: start timestamp (ISO)
-:param observation_end_utc: end timestamp (ISO)
+:param observation_start_utc: start timestamp 
+:param observation_end_utc: end timestamp
 :return: number of files downloaded successfully.</p>
 
 
@@ -1318,7 +1318,7 @@
 <li>identify eligible files for download (retry + new)</li>
 <li>perform parallel download</li>
 </ul>
-<p>:param instrument: instrument used for obsersation
+<p>:param instrument: instrument used for observation
 :param slots: list of slot domain entities
 :return: returns number of successfully downloaded files.</p>
 
@@ -1342,8 +1342,8 @@
 
         <p>returns downloaded files between a time window</p>
 <p>:param instrument: instrument used for observation
-:param download_start_utc: start timestamp (ISO)
-:param download_end_utc: end timestamp (ISO)
+:param download_start_utc: start timestamp
+:param download_end_utc: end timestamp
 :return: list of process file entities</p>
 
 
@@ -1366,7 +1366,7 @@
 
         <p>Recovers files stuck in intermediate states <code>DOWNLOADING</code>
 by marking them as failed if they exceed allowed timeout.</p>
-<p>:param now_utc: current UTC timestamp (ISO format)
+<p>:param now_utc: current UTC timestamp
 :return: number of files recovered.</p>
 
 

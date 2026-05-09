@@ -1146,6 +1146,15 @@ identifiers and its current processing state within the
 ingestion pipeline</p>
 
 
+<details class="invariants" open>
+  <summary>Invariants</summary>
+  <ul>
+<li>bot_utc and eot_utc must be timezone-aware UTC datetimes</li>
+<li>bot_utc must be earlier than eot_utc</li>
+<li>status must be SlotStatus enum value</li>
+</ul>
+</details>
+
 <p><span class="doc-section-title">Attributes:</span></p>
     <table>
       <thead>
@@ -1192,7 +1201,7 @@ ingestion pipeline</p>
           <tr class="doc-section-item">
             <td><code><span title="backend.database.domain.downlink_slot.DownlinkSlot.bot_utc">bot_utc</span></code></td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="datetime.datetime">datetime</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1203,7 +1212,7 @@ ingestion pipeline</p>
           <tr class="doc-section-item">
             <td><code><span title="backend.database.domain.downlink_slot.DownlinkSlot.eot_utc">eot_utc</span></code></td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="datetime.datetime">datetime</span></code>
             </td>
             <td>
               <div class="doc-md-description">

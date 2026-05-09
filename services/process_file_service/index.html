@@ -1339,7 +1339,7 @@ updates relevant files' status as <code>READY</code>.</p>
 
         <p>Recovers files stuck in intermediate states <code>PROCESSING</code>
 by marking them as failed if they exceed allowed timeout.</p>
-<p>:param now_utc: current UTC timestamp (ISO format)
+<p>:param now_utc: current UTC timestamp
 :return: number of files recovered.</p>
 
 
@@ -1373,8 +1373,8 @@ any eligible files are transitioned to READY.</p>
 - After logic changes
 - As a periodic consistency check in the pipeline</p>
 <p>:param instrument: Instrument used for observation
-:param observation_start_utc: Start of observation window (ISO UTC string)
-:param observation_end_utc: End of observation window (ISO UTC string)
+:param observation_start_utc: Start of observation window (UTC)
+:param observation_end_utc: End of observation window (UTC)
 :return: Number of files transitioned to READY</p>
 
 

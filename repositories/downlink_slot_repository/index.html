@@ -1536,8 +1536,7 @@ for faster accessbility while filtering on status and bot_utc</p>
 
     <div class="doc doc-contents ">
 
-        <p>Checks if slot status is valid or not.
-Creates the slot details to a row in the table. </p>
+        <p>Creates the slot details to a row in the table. </p>
 <p>:param slot: DownlinkSlot domain object
 :return: True only if the number of created rows is 1</p>
 
@@ -1563,7 +1562,8 @@ Creates the slot details to a row in the table. </p>
 
     <div class="doc doc-contents ">
 
-        <p>Query to create <code>downlink_slot</code> table</p>
+        <p>Query to create <code>downlink_slot</code> table
+timestamps are stored as ISO-8601 UTC strings</p>
 
 
     </div>
@@ -1703,7 +1703,7 @@ is in the future.</p>
 - upcoming if status = PENDING and bot_utc &gt; now
 - earliest such slot will be returned</p>
 <p>:param now: current timestamp in ISO UTC format
-:return: next upcoming DOownlinkSlot or None if not found</p>
+:return: next upcoming DownlinkSlot or None if not found</p>
 
 
     </div>
@@ -1756,8 +1756,6 @@ or not-yet-activated (PENDING) slots.</p>
 <p>This method returns slots whose time window intersects with the given
 interval and are already ACTIVE, DONE, or MISSED. It avoids returning
 future scheduled (PENDING) slots.</p>
-<p>The comparison is performed lexicographically on ISO 8601 UTC strings,
-so <code>downlink_start_utc</code> must be in ISO format (e.g. "2026-04-11T12:00:00+00:00").</p>
 <p>:param downlink_start_utc: Lower bound timestamp (inclusive) in ISO UTC format.
 :param downlink_end_utc: upper bound timestamp (inclusive) in ISO UTC format. 
 expected to be current timestamp, but could be anything
@@ -1815,8 +1813,6 @@ provided timestamp. Only slots in PENDING state are transitioned,
 ensuring that ACTIVE and DONE slots are not affected.</p>
 <p>This method is typically invoked during synchronization or scheduler
 initialization to clean up stale, unclaimed slots.</p>
-<p>The comparison relies on ISO 8601 UTC string ordering, so <code>now</code> must
-be provided in ISO format (e.g. "2026-04-11T12:00:00+00:00").</p>
 <p>:param now: Current timestamp (UTC, ISO format) used as cutoff.
 :return: Number of rows updated (slots marked as MISSED).</p>
 

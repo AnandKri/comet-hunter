@@ -1112,6 +1112,16 @@ instrument used for observation, exposure time, pixel
 numbers in width and height, roll angle</p>
 
 
+<details class="invariants" open>
+  <summary>Invariants</summary>
+  <ul>
+<li>datetime fields must be timezone-aware UTC datetimes</li>
+<li>instrument must be Instrument enum</li>
+<li>exposure_time must be positive</li>
+<li>width and height must be positive integers</li>
+</ul>
+</details>
+
 <p><span class="doc-section-title">Attributes:</span></p>
     <table>
       <thead>
@@ -1147,7 +1157,7 @@ numbers in width and height, roll angle</p>
           <tr class="doc-section-item">
             <td><code><span title="backend.database.domain.file_metadata.FileMetadata.datetime_of_observation">datetime_of_observation</span></code></td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="datetime.datetime">datetime</span></code>
             </td>
             <td>
               <div class="doc-md-description">

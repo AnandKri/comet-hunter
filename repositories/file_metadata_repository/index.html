@@ -1563,7 +1563,7 @@ for faster accessbility.</p>
         <p>creates the file metadata to a row in the table</p>
 <p>:param raw_file_name: raw file name, acts as primary key
 :param raw_file_hash: hash value of unprocessed file 
-:param datetime_of_observation: date of observation
+:param datetime_of_observation: date time of observation
 :param last_modified_utc: date time when file got available
 :param instrument: instrument used to capture the file
 :param exposure_time: exposure time in seconds
@@ -1594,7 +1594,8 @@ for faster accessbility.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Query to create <code>file_metadata</code> table.</p>
+        <p>Query to create <code>file_metadata</code> table.
+timestamps are stored as ISO-8601 UTC strings</p>
 
 
     </div>
@@ -1708,7 +1709,7 @@ and metadata needs to be retrieved without relying on filename.</p>
 
         <p>Fetch latest last modified for given instrument.</p>
 <p>:param instrument: Instrument enum
-:return: ISO datetime string or None if no records exist</p>
+:return: ISO datetime or None if no records exist</p>
 
 
     </div>
@@ -1730,8 +1731,8 @@ and metadata needs to be retrieved without relying on filename.</p>
 
         <p>Fetch metadata for a specific instrument within a observation time range</p>
 <p>:param instrument: instrument name
-:param observation_start_utc: start datetime (ISO string)
-:param observation_end_utc: end datetime (ISO string)
+:param observation_start_utc: start datetime (UTC format)
+:param observation_end_utc: end datetime (UTC format)
 :return: list of FileMetadata objects</p>
 
 
@@ -1754,8 +1755,8 @@ and metadata needs to be retrieved without relying on filename.</p>
 
         <p>Fetch metadata for a specific instrument within a time range</p>
 <p>:param instrument: instrument name
-:param downlink_start_utc: start datetime (ISO string)
-:param downlink_end_utc: end datetime (ISO string)
+:param downlink_start_utc: start datetime (UTC)
+:param downlink_end_utc: end datetime (UTC)
 :return: list of FileMetadata objects</p>
 
 
@@ -1779,7 +1780,8 @@ and metadata needs to be retrieved without relying on filename.</p>
         <p>Fetch metadata records where raw file hash is not yet populated.</p>
 <p>Useful for identifying files that require hash computation
 after discovery/download</p>
-<p>:param limit: Optional maximum number of records to return
+<p>:param instrument: instrument name to filter by
+:param limit: Optional maximum number of records to return
 :return: returns a List of FileMetadata domain objects</p>
 
 

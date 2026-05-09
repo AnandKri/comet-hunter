@@ -1332,8 +1332,8 @@
 
         <p>returns file metadata for a given time window and instrument</p>
 <p>:param instrument: instrument used for observation
-:param downlink_start_utc: start timestamp (ISO)
-:param downlink_end_utc: end timestamp (ISO)
+:param downlink_start_utc: start timestamp (UTC)
+:param downlink_end_utc: end timestamp (UTC)
 :return: list of file metadata domain entities</p>
 
 
@@ -1356,8 +1356,8 @@
 
         <p>get metadata for the instrument and observation time window</p>
 <p>:param instrument: instrument used for observation
-:param observation_start_utc: start observation timestamp (ISO) 
-:param observation_end_utc: end observation timestamp (ISO)
+:param observation_start_utc: start observation timestamp in UTC 
+:param observation_end_utc: end observation timestamp in UTC
 :return: list of file metadata domain entities</p>
 
 
@@ -1427,8 +1427,8 @@
 <p>If <code>downlink_start_utc</code> is not provided, it is inferred from DB (latest available record).
 If <code>downlink_end_utc</code> is not provided, current UTC time is used.</p>
 <p>:param instrument: instrument to sync (C2/C3)
-:param downlink_start_utc: start datetime (ISO string, optional)
-:param downlink_end_utc: end datetime (ISO string, optional)
+:param downlink_start_utc: start datetime (UTC optional)
+:param downlink_end_utc: end datetime (UTC optional)
 :return: number of new records inserted</p>
 
 
