@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from backend.database.repositories.processed_file_repository import ProcessedFileRepository
 from backend.services.metadata_service import MetadataService
@@ -7,7 +7,7 @@ from backend.database.domain.processed_file import ProcessedFile
 from backend.util.enums import FileStatus, Instrument
 from backend.util.funcs import validate_time_window
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import numpy as np
 from scipy.signal import medfilt2d
 from sunpy.map import Map
@@ -40,12 +40,12 @@ class ProcessFileService:
         self._processed_directory = processed_directory
         self._max_workers = max_workers
     
-    def recover_stale_files(self, now_utc: str, instrument: Instrument) -> int:
+    def recover_stale_files(self, now_utc: datetime, instrument: Instrument) -> int:
         """
         Recovers files stuck in intermediate states `PROCESSING`
         by marking them as failed if they exceed allowed timeout.
 
-        :param now_utc: current UTC timestamp (ISO format)
+        :param now_utc: current UTC timestamp
         :return: number of files recovered.
         """
         logger.info(
@@ -53,7 +53,9 @@ class ProcessFileService:
             extra={"instrument": instrument}
         )
         try:
-            now_dt = datetime.fromisoformat(now_utc)
+
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument should be a Instrument enum")
 
             recovered_count = 0
 
@@ -62,14 +64,13 @@ class ProcessFileService:
             for file in processing_files:
                 if not file.last_processing_attempt_at:
                     continue
-                last_attempt_dt = datetime.fromisoformat(file.last_processing_attempt_at)
-                if now_dt - last_attempt_dt > self.PROCESSING_TIMEOUT:
+                if now_utc - file.last_processing_attempt_at > self.PROCESSING_TIMEOUT:
                     try:
                         updated = file.transition_to(FileStatus.PROCESSING_FAILED)
                         updated = replace(
                             updated,
                             error_message="Recovered: processing timeout",
-                            processing_attempt_count=file.processing_attempt_count + 1,
+                            processing_attempt_count=updated.processing_attempt_count + 1,
                             last_processing_attempt_at=now_utc
                         )
                         if self._processed_repository.save(updated):
@@ -86,7 +87,7 @@ class ProcessFileService:
             logger.exception("Process stale file recovery failed")
             raise
     
-    def recover_unmarked_ready_files(self,instrument: Instrument,observation_start_utc: str,observation_end_utc: str) -> int:
+    def recover_unmarked_ready_files(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> int:
         """
         Recovers files that are in DOWNLOADED state but were not marked as READY
         due to missed or skipped execution of the pairing logic.
@@ -105,10 +106,14 @@ class ProcessFileService:
         - As a periodic consistency check in the pipeline
 
         :param instrument: Instrument used for observation
-        :param observation_start_utc: Start of observation window (ISO UTC string)
-        :param observation_end_utc: End of observation window (ISO UTC string)
+        :param observation_start_utc: Start of observation window (UTC)
+        :param observation_end_utc: End of observation window (UTC)
         :return: Number of files transitioned to READY
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
+        
+        validate_time_window(observation_start_utc, observation_end_utc)
         
         return self.mark_ready_files_for_processing(
             instrument=instrument,
@@ -116,7 +121,7 @@ class ProcessFileService:
             observation_end_utc=observation_end_utc
         )
 
-    def mark_ready_files_for_processing(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> int:
+    def mark_ready_files_for_processing(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> int:
         """
         Goes through all the files for a given observation time period and instrument, 
         updates relevant files' status as `READY`.
@@ -135,6 +140,9 @@ class ProcessFileService:
             }
         )
         try:
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument should be a Instrument enum")
+            
             validate_time_window(observation_start_utc, observation_end_utc)
             updated_count = 0
 
@@ -149,13 +157,12 @@ class ProcessFileService:
                         except ValueError:
                             logger.warning("Invalid READY state transition skipped")
             else:
-                observation_start_datetime = datetime.fromisoformat(observation_start_utc)
-                fetch_start_time = (observation_start_datetime - self.LOOKBACK_BUFFER).isoformat()
-                files = self._processed_repository.get_files_by_observation(instrument, fetch_start_time,observation_end_utc)
+                fetch_start_time = observation_start_utc - self.LOOKBACK_BUFFER
+                files = self._processed_repository.get_files_by_observation(instrument, fetch_start_time, observation_end_utc)
                 prev = None
                 for file in files:
-                    file_observation_datetime = datetime.fromisoformat(file.datetime_of_observation)
-                    if (file_observation_datetime >= observation_start_datetime) and (file.status == FileStatus.DOWNLOADED):
+                    file_observation_datetime = file.datetime_of_observation
+                    if (file_observation_datetime >= observation_start_utc) and (file.status == FileStatus.DOWNLOADED):
                         if prev:
                             observation_difference = file_observation_datetime - prev_observation_datetime
                             if  self.MIN_OBSERVATION_GAP <= observation_difference <= self.MAX_OBSERVATION_GAP:
@@ -170,7 +177,7 @@ class ProcessFileService:
                                 except ValueError:
                                     logger.warning("Invalid READY state transition skipped")
                     
-                    if file.status in [FileStatus.DOWNLOADED, FileStatus.PROCESSED, FileStatus.READY]:
+                    if file.status in {FileStatus.DOWNLOADED, FileStatus.PROCESSED, FileStatus.READY}:
                         prev = file
                         prev_observation_datetime = file_observation_datetime
             logger.info(
@@ -182,7 +189,7 @@ class ProcessFileService:
             logger.exception("File readiness evaluation failed")
             raise
 
-    def process_pending_files(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> int:
+    def process_pending_files(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> int:
         """
         Entry workflow for processing eligible files.
         
@@ -200,6 +207,9 @@ class ProcessFileService:
             }
         )
         try:
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument should be a Instrument enum")
+            
             validate_time_window(observation_start_utc, observation_end_utc)
 
             files = self._get_files_to_process(instrument, observation_start_utc, observation_end_utc)
@@ -221,7 +231,7 @@ class ProcessFileService:
             logger.exception("File processing execution failed")
             raise
     
-    def _get_files_to_process(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> List[ProcessedFile]:
+    def _get_files_to_process(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> List[ProcessedFile]:
         """
         Fetch files which are `READY` or eligible for retrying processing
 
@@ -230,6 +240,8 @@ class ProcessFileService:
         :param observation_end_utc: ending utc timestamp of observation
         :return: Files needing process
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
 
         validate_time_window(observation_start_utc, observation_end_utc)        
 
@@ -254,7 +266,7 @@ class ProcessFileService:
         
         return list({f.raw_file_name: f for f in (ready + retryable)}.values())
     
-    def get_files_by_observation_and_status(self, instrument: Instrument, status: FileStatus, observation_start_utc: str, observation_end_utc: str) -> list[ProcessedFile]:
+    def get_files_by_observation_and_status(self, instrument: Instrument, status: FileStatus, observation_start_utc: datetime, observation_end_utc: datetime) -> list[ProcessedFile]:
         """
         Returns list of file domain entities of a particular state, for a given observation time period and instrument
 
@@ -264,6 +276,11 @@ class ProcessFileService:
         :param observation_end_utc: observation end time
         :return: list of processedfile domain entities
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
+        if not isinstance(status, FileStatus):
+            raise ValueError("status should be a FileStatus enum")
+        validate_time_window(observation_start_utc, observation_end_utc)
 
         return self._processed_repository.get_files_by_observation_and_status(instrument, status, observation_start_utc, observation_end_utc)
     
@@ -300,15 +317,15 @@ class ProcessFileService:
         try:
             file = file.transition_to(FileStatus.PROCESSING)
             file = replace(file,
-                           last_processing_attempt_at=datetime.utcnow().isoformat())
+                           last_processing_attempt_at=datetime.now(UTC))
             self._processed_repository.save(file)
 
             processed_file_name, processed_file_path = self._process(file)
             
             file = file.transition_to(FileStatus.PROCESSED)
             file = replace(file, 
-                           processed_at=datetime.utcnow().isoformat(),
-                           processed_file_path=str(processed_file_path),
+                           processed_at=datetime.now(UTC),
+                           processed_file_path=processed_file_path,
                            processed_file_name=processed_file_name)
             self._processed_repository.save(file)
             return True
@@ -316,10 +333,11 @@ class ProcessFileService:
             file = file.transition_to(FileStatus.PROCESSING_FAILED)
             file = replace(file, 
                            error_message=str(e),
-                           last_processing_attempt_at=datetime.utcnow().isoformat(),
+                           last_processing_attempt_at=datetime.now(UTC),
                            processing_attempt_count=file.processing_attempt_count + 1)
             self._processed_repository.save(file)
-            print(f"PROCESSING FAILED: {file.raw_file_name} -> {e}")
+            logger.exception("File processing failed",
+                             extra={"file_name": file.raw_file_name})
             return False
     
     def _process(self, file: ProcessedFile) -> tuple:
@@ -334,22 +352,22 @@ class ProcessFileService:
         exposure_time = self._metadata_service.read_metadata(file.raw_file_name).exposure_time
 
         if file.instrument == Instrument.C2:
-            processed_array = self._apply_unsharp_masking(Path(file.raw_file_path), exposure_time)
+            processed_array = self._apply_unsharp_masking(file.raw_file_path, exposure_time)
         elif file.instrument == Instrument.C3:
             previous_file_path = self._processed_repository.read_file_by_name(file.previous_file_name).raw_file_path
             
             if not previous_file_path or not file.previous_file_name:
                 raise ValueError(f"Previous file missing or not downloaded: for {file.raw_file_name} - {file.previous_file_name}")
             
-            processed_array = self._apply_running_difference(Path(file.raw_file_path), Path(previous_file_path), exposure_time)
+            processed_array = self._apply_running_difference(file.raw_file_path, previous_file_path, exposure_time)
         else:
             raise ValueError(f"Unsupported instrument: {file.instrument}")
         
         base_name = Path(file.raw_file_name).stem
-        obs_dt = datetime.fromisoformat(file.datetime_of_observation)
+        obs_dt = file.datetime_of_observation
         formatted_dt = obs_dt.strftime("%Y%m%d_%H%M")
         processed_file_name = f"{base_name}_{file.instrument.value}_{formatted_dt}.png"
-        processed_file_path = Path(self._processed_directory / processed_file_name)
+        processed_file_path = self._processed_directory / processed_file_name
 
         self._save_image(processed_array, processed_file_path)
 

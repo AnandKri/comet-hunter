@@ -6,8 +6,8 @@ from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.services.slot_service import SlotService
 from backend.util.constants import Url
 from backend.util.enums import Instrument
-from backend.util.funcs import validate_time_window, _to_utc
-from datetime import datetime, timedelta, UTC
+from backend.util.funcs import validate_time_window
+from datetime import datetime, timedelta, UTC, date
 from zoneinfo import ZoneInfo
 import re
 import logging
@@ -26,7 +26,7 @@ class MetadataService:
     def __init__(self, metadata_repository: FileMetadataRepository):
         self._metadata_repository = metadata_repository
     
-    def sync_metadata(self, instrument: Instrument, downlink_start_utc: Optional[str] = None, downlink_end_utc: Optional[str] = None) -> int:
+    def sync_metadata(self, instrument: Instrument, downlink_start_utc: Optional[datetime] = None, downlink_end_utc: Optional[datetime] = None) -> int:
         """
         Fetch metadata from remote source and update database.
 
@@ -34,8 +34,8 @@ class MetadataService:
         If `downlink_end_utc` is not provided, current UTC time is used.
 
         :param instrument: instrument to sync (C2/C3)
-        :param downlink_start_utc: start datetime (ISO string, optional)
-        :param downlink_end_utc: end datetime (ISO string, optional)
+        :param downlink_start_utc: start datetime (UTC optional)
+        :param downlink_end_utc: end datetime (UTC optional)
         :return: number of new records inserted
         """
         logger.info(
@@ -47,26 +47,26 @@ class MetadataService:
             }
         )
         try:
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument should be a Instrument enum")
+
             if downlink_end_utc is None:
-                downlink_end_utc = datetime.now(UTC).isoformat()
+                downlink_end_utc = datetime.now(UTC)
             if downlink_start_utc is None:
                 downlink_start_utc = self._metadata_repository.get_latest_last_modified(instrument)
                 if downlink_start_utc is None:
-                    downlink_start_utc = (datetime.fromisoformat(downlink_end_utc) - timedelta(days=1)).isoformat()
+                    downlink_start_utc = downlink_end_utc - timedelta(days=1)
                 else:
-                    downlink_start_utc = (datetime.fromisoformat(downlink_start_utc) - timedelta(days=1)).isoformat()
+                    downlink_start_utc = downlink_start_utc - timedelta(days=1)
 
             validate_time_window(downlink_start_utc, downlink_end_utc)
             
             all_metadata = []
 
-            downlink_start_dt_utc = _to_utc(downlink_start_utc)
-            downlink_end_dt_utc = _to_utc(downlink_end_utc)
-
             for raw_text, last_modified_map in self._fetch_metadata(instrument, downlink_start_utc, downlink_end_utc):
                 parsed = self._parse_metadata(raw_text, last_modified_map)
                 filtered = [f for f in parsed
-                            if downlink_start_dt_utc <= _to_utc(f.last_modified_utc) <= downlink_end_dt_utc
+                            if downlink_start_utc <= f.last_modified_utc <= downlink_end_utc
                             ]
                 all_metadata.extend(filtered)
             
@@ -89,18 +89,21 @@ class MetadataService:
             logger.exception("Metadata sync service execution failed")
             raise
     
-    def _fetch_metadata(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> list[tuple[str, dict]]:
+    def _fetch_metadata(self, instrument: Instrument, downlink_start_utc: datetime, downlink_end_utc: datetime) -> list[tuple[str, dict]]:
         """
         Fetch metadata for each day in a given range.
 
         :param instrument: instrument (C2/C3)
-        :param downlink_start_utc: start datetime (ISO string)
-        :param downlink_end_utc: end datetime (ISO string), supposed to be current datetime
+        :param downlink_start_utc: start datetime (UTC)
+        :param downlink_end_utc: end datetime (UTC), supposed to be current datetime
         :return: list of raw metadata text (one per day)
         """
 
-        downlink_start_date_utc = _to_utc(downlink_start_utc).date()
-        downlink_end_date_utc = _to_utc(downlink_end_utc).date()
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
+
+        downlink_start_date_utc = downlink_start_utc.date()
+        downlink_end_date_utc = downlink_end_utc.date()
         downlink_current_utc = downlink_start_date_utc
 
         results = []
@@ -112,9 +115,16 @@ class MetadataService:
             try:
                 response = requests.get(metadata_url, timeout=15)
                 response.raise_for_status()
-                last_modified_map = self._fetch_last_modified_map(instrument, downlink_dt_str_utc)
+                last_modified_map = self._fetch_last_modified_map(instrument, downlink_current_utc)
                 results.append((response.text, last_modified_map))
             except Exception:
+                logger.exception(
+                    "Failed to fetch metadata",
+                    extra={
+                        "instrument": instrument,
+                        "downlink_dt_utc": downlink_dt_str_utc
+                    }
+                )
                 continue
 
             downlink_current_utc += timedelta(days=1)
@@ -136,7 +146,7 @@ class MetadataService:
         
         return new_files
     
-    def _parse_metadata(self, raw_text: str, last_modified_map: dict[str, str]) -> List[FileMetadata]:
+    def _parse_metadata(self, raw_text: str, last_modified_map: dict[str, datetime]) -> List[FileMetadata]:
         """
         Parse metadata text into domain objects.
 
@@ -162,7 +172,7 @@ class MetadataService:
                 date_part = parts[1]
                 time_part = parts[2]
                 dt_str = f"{date_part} {time_part}"
-                dt_iso = datetime.strptime(dt_str, "%Y/%m/%d %H:%M:%S").replace(tzinfo=UTC).isoformat()
+                dt_utc = datetime.strptime(dt_str, "%Y/%m/%d %H:%M:%S").replace(tzinfo=UTC)
                 instrument = Instrument(parts[3].lower())
                 exposure = float(parts[4])
                 width = int(parts[5])
@@ -173,7 +183,7 @@ class MetadataService:
                     FileMetadata(
                         raw_file_name=filename,
                         raw_file_hash=None,
-                        datetime_of_observation=dt_iso,
+                        datetime_of_observation=dt_utc,
                         last_modified_utc=last_modified_utc,
                         instrument=instrument,
                         exposure_time=exposure,
@@ -184,23 +194,34 @@ class MetadataService:
                 )
 
             except Exception:
+                logger.exception(
+                    "Failed to parse metadata line", 
+                    extra={"line": line}
+                )
                 continue
         
         return files
     
-    def _fetch_last_modified_map(self, instrument: Instrument, downlink_dt_utc: str) -> dict[str, str]:
+    def _fetch_last_modified_map(self, instrument: Instrument, downlink_dt_utc: date) -> dict[str, datetime]:
         """
         Fetch directory listing and return:
         filename -> last_modified_utc
         """
 
-        url = Url.build_base_path(downlink_dt_utc, instrument)
+        url = Url.build_base_path(downlink_dt_utc.isoformat(), instrument)
 
         try:
             response = requests.get(url, timeout=15)
             response.raise_for_status()
             html = response.text
         except Exception:
+            logger.exception(
+                "Failed to fetch directory listing",
+                extra={
+                    "instrument": instrument,
+                    "downlink_dt_utc": downlink_dt_utc
+                }
+            )
             return {}
 
         pattern = re.compile(
@@ -211,7 +232,7 @@ class MetadataService:
         et = ZoneInfo("America/New_York")
         utc = ZoneInfo("UTC")
 
-        result = {}
+        result: dict[str, datetime] = {}
 
         for match in pattern.finditer(html):
             filename = match.group(1)
@@ -223,9 +244,16 @@ class MetadataService:
                     f"{date_part} {time_part}", "%Y-%m-%d %H:%M"
                 ).replace(tzinfo=et)
 
-                result[filename] = dt_et.astimezone(utc).isoformat()
-
+                result[filename] = dt_et.astimezone(utc)
             except Exception:
+                logger.exception(
+                    "Failed to parse last modified timestamp",
+                    extra={
+                        "filename": filename,
+                        "date_part": date_part,
+                        "time_part": time_part
+                    }
+                )
                 continue
 
         return result
@@ -239,6 +267,9 @@ class MetadataService:
         :return: list of file metadata entities
         """
 
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
+
         if not slots:
             return []
         
@@ -251,15 +282,18 @@ class MetadataService:
             downlink_end_utc=downlink_end_utc
         )
     
-    def get_metadata_by_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> List[FileMetadata]:
+    def get_metadata_by_downlink(self, instrument: Instrument, downlink_start_utc: datetime, downlink_end_utc: datetime) -> List[FileMetadata]:
         """
         returns file metadata for a given time window and instrument
 
         :param instrument: instrument used for observation
-        :param downlink_start_utc: start timestamp (ISO)
-        :param downlink_end_utc: end timestamp (ISO)
+        :param downlink_start_utc: start timestamp (UTC)
+        :param downlink_end_utc: end timestamp (UTC)
         :return: list of file metadata domain entities
         """
+
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
 
         validate_time_window(downlink_start_utc, downlink_end_utc)
         
@@ -277,13 +311,15 @@ class MetadataService:
         :param slot_service: slot service instance
         :return: list of metadata files domain entities
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
 
         slot = [slot_service.sync_and_get_active_slot()]
 
         if not slot:
             return []
         
-        return self.get_metadata_by_slots(slot, instrument)
+        return self.get_metadata_by_slots(instrument, slot)
     
     def sync_metadata_by_slots(self, instrument: Instrument, slots: list[DownlinkSlot]) -> int:
         """
@@ -293,6 +329,8 @@ class MetadataService:
         :param slots: list of slots domain entities
         :return: number of files metadata inserted into db
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
 
         if not slots:
             return 0
@@ -302,15 +340,18 @@ class MetadataService:
 
         return self.sync_metadata(instrument, downlink_start_utc, downlink_end_utc)
     
-    def get_metadata_by_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[FileMetadata]:
+    def get_metadata_by_observation(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> list[FileMetadata]:
         """
         get metadata for the instrument and observation time window
 
         :param instrument: instrument used for observation
-        :param observation_start_utc: start observation timestamp (ISO) 
-        :param observation_end_utc: end observation timestamp (ISO)
+        :param observation_start_utc: start observation timestamp in UTC 
+        :param observation_end_utc: end observation timestamp in UTC
         :return: list of file metadata domain entities 
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
+
         validate_time_window(observation_start_utc, observation_end_utc)
 
         return self._metadata_repository.get_metadata_by_observation(

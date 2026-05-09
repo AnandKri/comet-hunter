@@ -102,15 +102,12 @@ class SlotService:
 
                 ant = match.group(7)
 
-                bot_dt = datetime.fromisoformat(f"{date}T{bot}:00")
-                eot_dt = datetime.fromisoformat(f"{date}T{eot}:00")
+                bot_utc = datetime.fromisoformat(f"{date}T{bot}:00").replace(tzinfo=UTC)
+                eot_utc = datetime.fromisoformat(f"{date}T{eot}:00").replace(tzinfo=UTC)
 
-                if eot_dt < bot_dt:
-                    eot_dt += timedelta(days=1)
-
-                bot_utc = bot_dt.replace(tzinfo=UTC).isoformat()
-                eot_utc = eot_dt.replace(tzinfo=UTC).isoformat()
-
+                if eot_utc <= bot_utc:
+                    eot_utc += timedelta(days=1)
+                
                 slot = DownlinkSlot(
                     wk=wk,
                     doy=doy,
@@ -165,7 +162,7 @@ class SlotService:
         """
         logger.info("Active slot synchronization started")
         try:
-            now = datetime.now(UTC).isoformat()
+            now = datetime.now(UTC)
 
             self._slot_repository.mark_expired_active_as_missed(now)
             self._slot_repository.mark_expired_pending_as_missed(now)
@@ -211,7 +208,7 @@ class SlotService:
         
         return self._slot_repository.delete_completed_slots()
     
-    def get_past_slots(self, downlink_start_utc: str, downlink_end_utc: str) -> list[DownlinkSlot]:
+    def get_past_slots(self, downlink_start_utc: datetime, downlink_end_utc: datetime) -> list[DownlinkSlot]:
         """
         get slots whose time window falls within the time period 
         between start and end.
@@ -224,15 +221,15 @@ class SlotService:
 
         return self._slot_repository.get_past_slots(downlink_start_utc=downlink_start_utc, downlink_end_utc=downlink_end_utc)
     
-    def get_future_slots(self, downlink_start_utc: str, downlink_end_utc: str) -> list[DownlinkSlot]:
+    def get_future_slots(self, downlink_start_utc: datetime, downlink_end_utc: datetime) -> list[DownlinkSlot]:
         """
         Returns future slots - which are not yet started.
         
         Could be utilized when there's no current `ACTIVE` slot,
         and we want to see next upcoming slots.
 
-        :param downlink_start_utc: starting timestamp (ISO UTC) (expected to be current timestamp)
-        :param downlink_end_utc: Upper bound timestamp (ISO UTC)
+        :param downlink_start_utc: starting UTC timestamp (expected to be current timestamp)
+        :param downlink_end_utc: Upper bound UTC timestamp
         :return: Return list of slot domain entities.
         """
 
@@ -253,9 +250,8 @@ class SlotService:
 
         now = datetime.now(UTC)
 
-        next_active_slot = self._slot_repository.get_next_active_slot(now.isoformat())
+        next_active_slot = self._slot_repository.get_next_active_slot(now)
         if not next_active_slot:
             return None
         
-        bot_utc = datetime.fromisoformat(next_active_slot.bot_utc)
-        return bot_utc - now
+        return next_active_slot.bot_utc - now

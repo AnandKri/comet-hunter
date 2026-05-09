@@ -37,12 +37,12 @@ class DownloadFileService:
         self._download_directory = download_directory
         self._max_workers = max_workers
     
-    def recover_stale_files(self, now_utc: str, instrument: Instrument) -> int:
+    def recover_stale_files(self, now_utc: datetime, instrument: Instrument) -> int:
         """
         Recovers files stuck in intermediate states `DOWNLOADING`
         by marking them as failed if they exceed allowed timeout.
 
-        :param now_utc: current UTC timestamp (ISO format)
+        :param now_utc: current UTC timestamp
         :return: number of files recovered.
         """
         logger.info(
@@ -50,7 +50,9 @@ class DownloadFileService:
             extra={"instrument": instrument}
         )
         try:
-            now_dt = datetime.fromisoformat(now_utc)
+
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument should be a Instrument enum")
 
             recovered_count = 0
 
@@ -59,14 +61,13 @@ class DownloadFileService:
             for file in downloading_files:
                 if not file.last_downloading_attempt_at:
                     continue
-                last_attempt_dt = datetime.fromisoformat(file.last_downloading_attempt_at)
-                if now_dt - last_attempt_dt > self.DOWNLOADING_TIMEOUT:
+                if now_utc - file.last_downloading_attempt_at > self.DOWNLOADING_TIMEOUT:
                     try:
                         updated = file.transition_to(FileStatus.DOWNLOADING_FAILED)
                         updated = replace(
                             updated,
                             error_message="Recovered: download timeout",
-                            downloading_attempt_count=file.downloading_attempt_count + 1,
+                            downloading_attempt_count=updated.downloading_attempt_count + 1,
                             last_downloading_attempt_at=now_utc
                         )
                         if self._processed_repository.save(updated):
@@ -94,13 +95,16 @@ class DownloadFileService:
         - identify eligible files for download (retry + new)
         - perform parallel download
         
-        :param instrument: instrument used for obsersation
+        :param instrument: instrument used for observation
         :param slots: list of slot domain entities
         :return: returns number of successfully downloaded files.
         """
         logger.info("Slot-based file download execution started",
                     extra={"instrument": instrument})
         try:
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument should be a Instrument enum")
+
             if not slots:
                 logger.info("No slots provided for download")
                 return 0
@@ -131,15 +135,17 @@ class DownloadFileService:
             logger.exception("Slot-based file download execution failed")
             raise
     
-    def download_files_by_downlink(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> int:
+    def download_files_by_downlink(self, instrument: Instrument, downlink_start_utc: datetime, downlink_end_utc: datetime) -> int:
         """
         Download files within a given downlink time frame and instrument.
 
         :param instrument: Instrument used for observation
-        :param downlink_start_utc: start timestamp (ISO)
-        :param downlink_end_utc: end timestamp (ISO)
+        :param downlink_start_utc: start timestamp 
+        :param downlink_end_utc: end timestamp
         :return: number of files downloaded successfully.
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
 
         validate_time_window(downlink_start_utc, downlink_end_utc)
 
@@ -151,13 +157,13 @@ class DownloadFileService:
         
         return self._parallel_download(files)
     
-    def download_files_by_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> int:
+    def download_files_by_observation(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> int:
         """
         download files within an observation time period and instrument.
 
         :param instrument: Instrument used for observation
-        :param observation_start_utc: start timestamp (ISO)
-        :param observation_end_utc: end timestamp (ISO)
+        :param observation_start_utc: start timestamp 
+        :param observation_end_utc: end timestamp
         :return: number of files downloaded successfully.
         """
         logger.info(
@@ -169,6 +175,9 @@ class DownloadFileService:
             }
         )
         try:
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument should be a Instrument enum")
+            
             validate_time_window(observation_start_utc, observation_end_utc)
 
             metadata_files = self._metadata_service.get_metadata_by_observation(instrument, observation_start_utc, observation_end_utc)
@@ -190,15 +199,17 @@ class DownloadFileService:
             logger.exception("Observation-based file download execution failed")
             raise
     
-    def get_downloaded_files_by_time(self, instrument: Instrument, download_start_utc: str, download_end_utc: str) -> list[ProcessedFile]:
+    def get_downloaded_files_by_time(self, instrument: Instrument, download_start_utc: datetime, download_end_utc: datetime) -> list[ProcessedFile]:
         """
         returns downloaded files between a time window
 
         :param instrument: instrument used for observation
-        :param download_start_utc: start timestamp (ISO)
-        :param download_end_utc: end timestamp (ISO)
+        :param download_start_utc: start timestamp
+        :param download_end_utc: end timestamp
         :return: list of process file entities
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
 
         validate_time_window(download_start_utc, download_end_utc)
 
@@ -250,7 +261,7 @@ class DownloadFileService:
             
             else:
                 file = self._processed_repository.read_file_by_name(metadata.raw_file_name)
-                if file.can_retry_downloading(self._processed_repository.max_downloading_attempts):
+                if file and file.can_retry_downloading(self._processed_repository.max_downloading_attempts):
                     files.append(file)
         
         return files
@@ -291,12 +302,11 @@ class DownloadFileService:
         try:
             file = file.transition_to(FileStatus.DOWNLOADING)
             file = replace(file,
-                           last_downloading_attempt_at = datetime.now(UTC).isoformat())
+                           last_downloading_attempt_at = datetime.now(UTC))
             self._processed_repository.save(file)
             
-            obs_date = datetime.fromisoformat(
-                file.datetime_of_observation
-                ).date().isoformat()
+            obs_date = file.datetime_of_observation.date().isoformat()
+            
             download_url = Url.build_fits_url(dt=obs_date, 
                                      instrument=file.instrument,
                                      filename=file.raw_file_name)
@@ -304,8 +314,8 @@ class DownloadFileService:
             download_path = self._download(download_url, file)
             file = file.transition_to(FileStatus.DOWNLOADED)
             file = replace(file,
-                            downloaded_at=datetime.now(UTC).isoformat(),
-                            raw_file_path = str(download_path))
+                            downloaded_at=datetime.now(UTC),
+                            raw_file_path = download_path)
             self._processed_repository.save(file)
             return True
         except Exception as e:
