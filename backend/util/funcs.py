@@ -1,9 +1,7 @@
 from datetime import datetime, timezone
 
-def validate_time_window(start: str, end: str):
-    s = _to_utc(start)
-    e = _to_utc(end)
-    if s >= e:
+def validate_time_window(start: datetime, end: datetime):
+    if start >= end:
         raise ValueError("start must be earlier than end")
 
 def _to_utc(dt_str: str):
