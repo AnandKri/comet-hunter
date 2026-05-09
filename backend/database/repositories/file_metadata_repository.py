@@ -1,3 +1,4 @@
+from datetime import datetime
 from backend.util.constants import DB
 from backend.util.enums import FetchType, OperationType, Instrument
 from typing import Optional, ClassVar
@@ -23,6 +24,7 @@ class FileMetadataRepository:
     def create_table_sql(cls) -> str:
         """
         Query to create `file_metadata` table.
+        timestamps are stored as ISO-8601 UTC strings
         """
         return f"""
             CREATE TABLE IF NOT EXISTS {cls.table_name} (
@@ -60,8 +62,8 @@ class FileMetadataRepository:
     def create_metadata(self, 
                         raw_file_name: str, 
                         raw_file_hash: Optional[str],
-                        datetime_of_observation: str,
-                        last_modified_utc: str,
+                        datetime_of_observation: datetime,
+                        last_modified_utc: datetime,
                         instrument: Instrument, 
                         exposure_time: float, 
                         width: int, 
@@ -72,7 +74,7 @@ class FileMetadataRepository:
 
         :param raw_file_name: raw file name, acts as primary key
         :param raw_file_hash: hash value of unprocessed file 
-        :param datetime_of_observation: date of observation
+        :param datetime_of_observation: date time of observation
         :param last_modified_utc: date time when file got available
         :param instrument: instrument used to capture the file
         :param exposure_time: exposure time in seconds
@@ -81,7 +83,11 @@ class FileMetadataRepository:
         :param roll: frame roll if any
         :return: Returns True only if the number of created rows is 1
         """
+
         try:
+            if not isinstance(instrument, Instrument):
+                raise ValueError("instrument must be an instance of Instrument enum")
+
             spec = QuerySpec(
                 sql = f"""
                     INSERT OR IGNORE INTO {self.table_name}
@@ -100,8 +106,8 @@ class FileMetadataRepository:
                 params=(
                         raw_file_name, 
                         raw_file_hash, 
-                        datetime_of_observation,
-                        last_modified_utc,
+                        datetime_of_observation.isoformat(),
+                        last_modified_utc.isoformat(),
                         instrument.value,
                         exposure_time, 
                         width, 
@@ -115,7 +121,7 @@ class FileMetadataRepository:
             return result.rows_affected == 1
         except Exception:
             logger.exception("Error creating metadata")
-            return False
+            raise
     
     def read_metadata(self, raw_file_name: str) -> Optional[FileMetadata]:
         """
@@ -169,7 +175,7 @@ class FileMetadataRepository:
             return result.rows_affected == 1
         except Exception:
             logger.exception("Error updating file hash")
-            return False
+            raise
 
     def delete_metadata(self, file: FileMetadata) -> bool:
         """
@@ -193,7 +199,7 @@ class FileMetadataRepository:
             return result.rows_affected == 1
         except Exception:
             logger.exception("Error deleting metadata")
-            return False
+            raise
 
     def exists_by_filename(self, raw_file_name: str) -> bool:
         """
@@ -219,15 +225,18 @@ class FileMetadataRepository:
 
         return result.data is not None
     
-    def get_metadata_by_slot(self, instrument: Instrument, downlink_start_utc: str, downlink_end_utc: str) -> list[FileMetadata]:
+    def get_metadata_by_slot(self, instrument: Instrument, downlink_start_utc: datetime, downlink_end_utc: datetime) -> list[FileMetadata]:
         """
         Fetch metadata for a specific instrument within a time range
 
         :param instrument: instrument name
-        :param downlink_start_utc: start datetime (ISO string)
-        :param downlink_end_utc: end datetime (ISO string)
+        :param downlink_start_utc: start datetime (UTC)
+        :param downlink_end_utc: end datetime (UTC)
         :return: list of FileMetadata objects
         """
+
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be an instance of Instrument enum")
 
         spec = QuerySpec(
             sql=f"""
@@ -239,7 +248,7 @@ class FileMetadataRepository:
                 ORDER BY last_modified_utc ASC
             """,
             operation=OperationType.READ,
-            params=(instrument.value, downlink_start_utc, downlink_end_utc),
+            params=(instrument.value, downlink_start_utc.isoformat(), downlink_end_utc.isoformat()),
             fetch=FetchType.ALL
         )
 
@@ -250,15 +259,18 @@ class FileMetadataRepository:
 
         return [FileMetadata.from_row(row) for row in result.data]
     
-    def get_metadata_by_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[FileMetadata]:
+    def get_metadata_by_observation(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> list[FileMetadata]:
         """
         Fetch metadata for a specific instrument within a observation time range
 
         :param instrument: instrument name
-        :param observation_start_utc: start datetime (ISO string)
-        :param observation_end_utc: end datetime (ISO string)
+        :param observation_start_utc: start datetime (UTC format)
+        :param observation_end_utc: end datetime (UTC format)
         :return: list of FileMetadata objects
         """
+
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be an instance of Instrument enum")
 
         spec = QuerySpec(
             sql=f"""
@@ -270,7 +282,7 @@ class FileMetadataRepository:
                 ORDER BY datetime_of_observation ASC
             """,
             operation=OperationType.READ,
-            params=(instrument.value, observation_start_utc, observation_end_utc),
+            params=(instrument.value, observation_start_utc.isoformat(), observation_end_utc.isoformat()),
             fetch=FetchType.ALL
         )
 
@@ -288,9 +300,13 @@ class FileMetadataRepository:
         Useful for identifying files that require hash computation
         after discovery/download
 
+        :param instrument: instrument name to filter by
         :param limit: Optional maximum number of records to return
         :return: returns a List of FileMetadata domain objects
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be an instance of Instrument enum")
+
         spec = QuerySpec(
             sql = f"""
                 SELECT *
@@ -399,8 +415,8 @@ class FileMetadataRepository:
                 params=[
                     (
                         file.raw_file_name,
-                        file.datetime_of_observation,
-                        file.last_modified_utc,
+                        file.datetime_of_observation.isoformat(),
+                        file.last_modified_utc.isoformat(),
                         file.instrument.value,
                         file.exposure_time,
                         file.width,
@@ -416,15 +432,17 @@ class FileMetadataRepository:
             return result.rows_affected
         except Exception:
             logger.exception("Error in bulk creating metadata")
-            return 0
+            raise
 
-    def get_latest_last_modified(self, instrument: Instrument) -> Optional[str]:
+    def get_latest_last_modified(self, instrument: Instrument) -> Optional[datetime]:
         """
         Fetch latest last modified for given instrument.
 
         :param instrument: Instrument enum
-        :return: ISO datetime string or None if no records exist
+        :return: ISO datetime or None if no records exist
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be an instance of Instrument enum")
 
         spec = QuerySpec(
             sql=f"""
@@ -442,4 +460,4 @@ class FileMetadataRepository:
         if not result.data or result.data["max_dt"] is None:
             return None
 
-        return result.data["max_dt"]
+        return datetime.fromisoformat(result.data["max_dt"])

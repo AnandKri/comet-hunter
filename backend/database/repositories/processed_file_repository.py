@@ -1,3 +1,5 @@
+from datetime import datetime
+from pathlib import Path
 from backend.util.constants import DB
 from backend.util.enums import FileStatus, FetchType, OperationType, Instrument
 from typing import Optional, ClassVar, Literal
@@ -25,6 +27,7 @@ class ProcessedFileRepository:
     def create_table_sql(cls) -> str:
         """
         Query to create `processed_file` table.
+        timestamps are stored as ISO-8601 UTC strings
         """
 
         allowed_statuses = ",".join(f"'{status.value}'" for status in FileStatus)
@@ -68,25 +71,25 @@ class ProcessedFileRepository:
     def create_file(self,
                     raw_file_name: str,
                     raw_file_hash: Optional[str],
-                    raw_file_path: Optional[str],
+                    raw_file_path: Optional[Path],
                     raw_file_size: Optional[int],
                     processed_file_name: Optional[str],
                     processed_file_hash: Optional[str],
-                    processed_file_path: Optional[str],
+                    processed_file_path: Optional[Path],
                     processed_file_size: Optional[int],
-                    datetime_of_observation: str,
+                    datetime_of_observation: datetime,
                     instrument: Instrument,
                     status: FileStatus,
                     error_message: Optional[str],
-                    downloaded_at: Optional[str],
-                    last_downloading_attempt_at: Optional[str],
+                    downloaded_at: Optional[datetime],
+                    last_downloading_attempt_at: Optional[datetime],
                     downloading_attempt_count: int,
-                    processed_at: Optional[str],
-                    last_processing_attempt_at: Optional[str],
+                    processed_at: Optional[datetime],
+                    last_processing_attempt_at: Optional[datetime],
                     processing_attempt_count: int,
                     previous_file_name: Optional[str]) -> bool:
         """
-        Checks if file status is valid or not.
+        Checks if file status is enum or not.
         creates the file details to a row in the table
         
         :param raw_file_name: raw file name, as appears in img-hdr.txt - primary key
@@ -144,21 +147,21 @@ class ProcessedFileRepository:
                 params=(
                         raw_file_name,
                         raw_file_hash,
-                        raw_file_path,
+                        str(raw_file_path) if raw_file_path else None,
                         raw_file_size,
                         processed_file_name,
                         processed_file_hash,
-                        processed_file_path,
+                        str(processed_file_path) if processed_file_path else None,
                         processed_file_size,
-                        datetime_of_observation,
+                        datetime_of_observation.isoformat(),
                         instrument.value,
                         status.value,
                         error_message,
-                        downloaded_at,
-                        last_downloading_attempt_at,
+                        downloaded_at.isoformat() if downloaded_at else None,
+                        last_downloading_attempt_at.isoformat() if last_downloading_attempt_at else None,
                         downloading_attempt_count,
-                        processed_at,
-                        last_processing_attempt_at,
+                        processed_at.isoformat() if processed_at else None,
+                        last_processing_attempt_at.isoformat() if last_processing_attempt_at else None,
                         processing_attempt_count,
                         previous_file_name
                     )
@@ -169,7 +172,7 @@ class ProcessedFileRepository:
             return result.rows_affected == 1
         except Exception:
             logger.exception("Error in creating processed file record")
-            return False
+            raise
     
     def read_file_by_name(self, raw_file_name: str) -> Optional[ProcessedFile]:
         """
@@ -219,7 +222,7 @@ class ProcessedFileRepository:
             return result.rows_affected == 1
         except Exception:
             logger.exception("Error deleting processed file record")
-            return False
+            raise
 
     def save(self, file: ProcessedFile) -> bool:
         """
@@ -252,16 +255,16 @@ class ProcessedFileRepository:
                 params=(
                     file.status.value,
                     file.error_message,
-                    file.downloaded_at,
-                    file.last_downloading_attempt_at,
+                    file.downloaded_at.isoformat() if file.downloaded_at else None,
+                    file.last_downloading_attempt_at.isoformat() if file.last_downloading_attempt_at else None,
                     file.downloading_attempt_count,
-                    file.raw_file_path,
+                    str(file.raw_file_path) if file.raw_file_path else None,
                     file.processed_file_hash,
                     file.processed_file_name,
-                    file.processed_file_path,
+                    str(file.processed_file_path) if file.processed_file_path else None,
                     file.processed_file_size,
-                    file.processed_at,
-                    file.last_processing_attempt_at,
+                    file.processed_at.isoformat() if file.processed_at else None,
+                    file.last_processing_attempt_at.isoformat() if file.last_processing_attempt_at else None,
                     file.processing_attempt_count,
                     file.previous_file_name,
                     file.raw_file_name
@@ -273,7 +276,7 @@ class ProcessedFileRepository:
             return result.rows_affected == 1
         except Exception:
             logger.exception("Error saving processed file record")
-            return False
+            raise
 
     def exists_by_name(self, raw_file_name: str) -> bool:
         """
@@ -352,15 +355,17 @@ class ProcessedFileRepository:
 
         return [ProcessedFile.from_row(r) for r in result.data]
     
-    def get_downloaded_files_by_time(self, instrument: Instrument, download_start_utc: str, download_end_utc: str) -> list[ProcessedFile]:
+    def get_downloaded_files_by_time(self, instrument: Instrument, download_start_utc: datetime, download_end_utc: datetime) -> list[ProcessedFile]:
         """
         get downloaded files by instrument and download_at time window
         
         :param instrument: instrument used for observation
-        :param download_start_utc: start timestamp (ISO)
-        :param download_end_utc: end timestamp (ISO)
+        :param download_start_utc: start timestamp (UTC)
+        :param download_end_utc: end timestamp (UTC)
         :return: list of process file entities
         """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be Instrument enum")
 
         spec = QuerySpec(
             sql = f"""
@@ -372,8 +377,8 @@ class ProcessedFileRepository:
                     ORDER BY downloaded_at ASC
                 """,
             operation=OperationType.READ,
-            params=(download_start_utc,
-                    download_end_utc,
+            params=(download_start_utc.isoformat(),
+                    download_end_utc.isoformat(),
                     instrument.value),
             fetch=FetchType.ALL
         )
@@ -385,7 +390,7 @@ class ProcessedFileRepository:
 
         return [ProcessedFile.from_row(r) for r in result.data]
     
-    def get_files_by_observation(self, instrument: Instrument, observation_start_utc: str, observation_end_utc: str) -> list[ProcessedFile]:
+    def get_files_by_observation(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> list[ProcessedFile]:
         """
         Returns files within a observation period and instrument
 
@@ -394,6 +399,9 @@ class ProcessedFileRepository:
         :param observation_end_utc: ending utc timestamp of observation
         :return: list of processed file domain entities
         """
+
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be Instrument enum")
 
         spec = QuerySpec(
             sql = f"""
@@ -405,8 +413,8 @@ class ProcessedFileRepository:
                     ORDER BY datetime_of_observation ASC
                 """,
             operation=OperationType.READ,
-            params=(observation_start_utc,
-                    observation_end_utc,
+            params=(observation_start_utc.isoformat(),
+                    observation_end_utc.isoformat(),
                     instrument.value),
             fetch=FetchType.ALL
         )
@@ -421,8 +429,8 @@ class ProcessedFileRepository:
     def get_files_by_observation_and_status(self, 
                                             instrument: Instrument, 
                                             status: FileStatus,
-                                            observation_start_utc: str,
-                                            observation_end_utc: str) -> list[ProcessedFile]:
+                                            observation_start_utc: datetime,
+                                            observation_end_utc: datetime) -> list[ProcessedFile]:
         
         """
         returns files for a given observation time preiod and status
@@ -433,6 +441,12 @@ class ProcessedFileRepository:
         :param observation_end_utc: ending utc timestamp of observation
         :return: list of processed file domain entities 
         """
+
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be Instrument enum")
+
+        if not isinstance(status, FileStatus):
+            raise ValueError("status must be FileStatus enum")
 
         spec = QuerySpec(
             sql = f"""
@@ -445,8 +459,8 @@ class ProcessedFileRepository:
                     ORDER BY datetime_of_observation ASC
                 """,
             operation=OperationType.READ,
-            params=(observation_start_utc,
-                    observation_end_utc,
+            params=(observation_start_utc.isoformat(),
+                    observation_end_utc.isoformat(),
                     instrument.value,
                     status.value),
             fetch=FetchType.ALL

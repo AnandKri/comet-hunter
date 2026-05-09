@@ -1,7 +1,7 @@
 from backend.util.constants import DB
 from backend.util.enums import SlotStatus,FetchType,OperationType
 from typing import Optional, ClassVar
-from datetime import datetime, UTC
+from datetime import datetime
 from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.database.infrastructure.query_spec import QuerySpec
 from backend.database.infrastructure.query_executor import QueryExecutor
@@ -24,7 +24,8 @@ class DownlinkSlotRepository:
     @classmethod
     def create_table_sql(cls) -> str:
         """
-        Query to create `downlink_slot` table 
+        Query to create `downlink_slot` table
+        timestamps are stored as ISO-8601 UTC strings 
         """
         return f"""
             CREATE TABLE IF NOT EXISTS {cls.table_name} (
@@ -53,16 +54,12 @@ class DownlinkSlotRepository:
     
     def create_slot(self, slot: DownlinkSlot) -> bool:
         """
-        Checks if slot status is valid or not.
         Creates the slot details to a row in the table. 
         
         :param slot: DownlinkSlot domain object
         :return: True only if the number of created rows is 1
         """
         try:
-            if not isinstance(slot.status, SlotStatus):
-                raise ValueError("status must be SlotStatus enum")
-            
             spec = QuerySpec(
                 sql=f"""
                     INSERT OR IGNORE INTO {self.table_name}
@@ -70,7 +67,13 @@ class DownlinkSlotRepository:
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                 operation=OperationType.WRITE,
-                params=(slot.wk, slot.doy, slot.wdy, slot.bot_utc, slot.eot_utc, slot.ant, slot.status.value)
+                params=(slot.wk, 
+                        slot.doy, 
+                        slot.wdy, 
+                        slot.bot_utc.isoformat(), 
+                        slot.eot_utc.isoformat(), 
+                        slot.ant, 
+                        slot.status.value)
             )
 
             result = self._executor.execute(spec)
@@ -80,7 +83,7 @@ class DownlinkSlotRepository:
             logger.exception("Failed to create slot")
             raise
     
-    def mark_expired_pending_as_missed(self, now: str) -> int:
+    def mark_expired_pending_as_missed(self, now: datetime) -> int:
         """
         Marks all expired PENDING slots as MISSED.
 
@@ -90,9 +93,6 @@ class DownlinkSlotRepository:
 
         This method is typically invoked during synchronization or scheduler
         initialization to clean up stale, unclaimed slots.
-
-        The comparison relies on ISO 8601 UTC string ordering, so `now` must
-        be provided in ISO format (e.g. "2026-04-11T12:00:00+00:00").
 
         :param now: Current timestamp (UTC, ISO format) used as cutoff.
         :return: Number of rows updated (slots marked as MISSED).
@@ -108,7 +108,7 @@ class DownlinkSlotRepository:
                 operation=OperationType.WRITE,
                 params=(
                     SlotStatus.MISSED.value,
-                    now,
+                    now.isoformat(),
                     SlotStatus.PENDING.value
                 )
             )
@@ -120,7 +120,7 @@ class DownlinkSlotRepository:
             logger.exception("Failed to mark expired pending slots as missed")
             raise
     
-    def mark_expired_active_as_missed(self, now: str) -> int:
+    def mark_expired_active_as_missed(self, now: datetime) -> int:
         """
         Mark all expired ACTIVE slots as MISSED.
 
@@ -146,7 +146,7 @@ class DownlinkSlotRepository:
                 operation=OperationType.WRITE,
                 params=(
                     SlotStatus.MISSED.value,
-                    now,
+                    now.isoformat(),
                     SlotStatus.ACTIVE.value
                 )
             )
@@ -158,7 +158,7 @@ class DownlinkSlotRepository:
             logger.exception("Failed to mark expired active slots as missed")
             raise
 
-    def get_next_claimable_slot(self, now: str) -> Optional[DownlinkSlot]:
+    def get_next_claimable_slot(self, now: datetime) -> Optional[DownlinkSlot]:
         """
         Fetch the next eligible PENDING slot that can be activated.
 
@@ -188,8 +188,8 @@ class DownlinkSlotRepository:
             operation=OperationType.READ,
             params=(
                 SlotStatus.PENDING.value,
-                now,
-                now
+                now.isoformat(),
+                now.isoformat()
             ),
             fetch=FetchType.ONE
         )
@@ -227,7 +227,7 @@ class DownlinkSlotRepository:
                         slot.wk,
                         slot.doy,
                         slot.wdy,
-                        slot.bot_utc) 
+                        slot.bot_utc.isoformat()) 
             )
 
             result = self._executor.execute(spec)
@@ -257,7 +257,7 @@ class DownlinkSlotRepository:
                 params=(slot.wk,
                         slot.doy,
                         slot.wdy,
-                        slot.bot_utc)
+                        slot.bot_utc.isoformat())
             )
             
             result = self._executor.execute(spec)
@@ -280,7 +280,7 @@ class DownlinkSlotRepository:
                 """,
                 operation=OperationType.WRITE,
                 params=(
-                    SlotStatus.DONE.value
+                    SlotStatus.DONE.value,
                 )
             )
 
@@ -312,7 +312,7 @@ class DownlinkSlotRepository:
                 LIMIT 1
             """,
             operation=OperationType.READ,
-            params=(wk, doy, wdy, bot_utc),
+            params=(wk, doy, wdy, bot_utc.isoformat()),
             fetch=FetchType.ONE
         )
 
@@ -320,7 +320,7 @@ class DownlinkSlotRepository:
 
         return result.data is not None
     
-    def get_past_slots(self, downlink_start_utc: str, downlink_end_utc: str) -> list[DownlinkSlot]:
+    def get_past_slots(self, downlink_start_utc: datetime, downlink_end_utc: datetime) -> list[DownlinkSlot]:
         """
         Fetch slots overlapping the time window [start, end], excluding future
         or not-yet-activated (PENDING) slots.
@@ -329,20 +329,11 @@ class DownlinkSlotRepository:
         interval and are already ACTIVE, DONE, or MISSED. It avoids returning
         future scheduled (PENDING) slots.
 
-        The comparison is performed lexicographically on ISO 8601 UTC strings,
-        so `downlink_start_utc` must be in ISO format (e.g. "2026-04-11T12:00:00+00:00").
-
         :param downlink_start_utc: Lower bound timestamp (inclusive) in ISO UTC format.
         :param downlink_end_utc: upper bound timestamp (inclusive) in ISO UTC format. 
         expected to be current timestamp, but could be anything
         :return: List of DownlinkSlot domain entities ordered by `bot_utc`.
         """
-
-        downlink_start_dt_utc = datetime.fromisoformat(downlink_start_utc)
-        downlink_end_dt_utc = datetime.fromisoformat(downlink_end_utc)
-
-        if downlink_start_dt_utc >= downlink_end_dt_utc:
-            raise ValueError("`downlink_start_utc` must be earlier than `downlink_end_utc`")
 
         spec = QuerySpec(
             sql=f"""
@@ -355,8 +346,8 @@ class DownlinkSlotRepository:
             """,
             operation=OperationType.READ,
             params=(
-                downlink_end_utc,
-                downlink_start_utc,
+                downlink_end_utc.isoformat(),
+                downlink_start_utc.isoformat(),
                 SlotStatus.ACTIVE.value,
                 SlotStatus.DONE.value,
                 SlotStatus.MISSED.value
@@ -400,7 +391,7 @@ class DownlinkSlotRepository:
 
         return DownlinkSlot.from_row(result.data)
     
-    def get_future_slots(self, downlink_start_utc: str, downlink_end_utc: str) -> list[DownlinkSlot]:
+    def get_future_slots(self, downlink_start_utc: datetime, downlink_end_utc: datetime) -> list[DownlinkSlot]:
         """
         Fetch upcoming slots within time window (downlink_start_utc, downlink_end_utc].
 
@@ -414,12 +405,6 @@ class DownlinkSlotRepository:
         :return: List of upcoming DownlinkSlot entities ordered by `bot_utc`
         """
 
-        downlink_start_dt_utc = datetime.fromisoformat(downlink_start_utc)
-        downlink_end_dt_utc = datetime.fromisoformat(downlink_end_utc)
-
-        if downlink_start_dt_utc >= downlink_end_dt_utc:
-            raise ValueError("`start` must be earlier than `end`")
-
         spec = QuerySpec(
             sql=f"""
                 SELECT *
@@ -432,8 +417,8 @@ class DownlinkSlotRepository:
             operation=OperationType.READ,
             params=(
                 SlotStatus.PENDING.value,
-                downlink_start_utc,
-                downlink_end_utc
+                downlink_start_utc.isoformat(),
+                downlink_end_utc.isoformat()
             ),
             fetch=FetchType.ALL
         )
@@ -445,7 +430,7 @@ class DownlinkSlotRepository:
 
         return [DownlinkSlot.from_row(row) for row in result.data]
     
-    def get_next_active_slot(self, now: str) -> Optional[DownlinkSlot]:
+    def get_next_active_slot(self, now: datetime) -> Optional[DownlinkSlot]:
         """
         fetch the next upcoming `PENDING` slot where start time
         is in the future.
@@ -455,7 +440,7 @@ class DownlinkSlotRepository:
         - earliest such slot will be returned
 
         :param now: current timestamp in ISO UTC format
-        :return: next upcoming DOownlinkSlot or None if not found
+        :return: next upcoming DownlinkSlot or None if not found
         """
 
         spec = QuerySpec(
@@ -468,7 +453,7 @@ class DownlinkSlotRepository:
                 LIMIT 1
             """,
             operation=OperationType.READ,
-            params=(SlotStatus.PENDING.value, now),
+            params=(SlotStatus.PENDING.value, now.isoformat()),
             fetch=FetchType.ONE
         )
 
