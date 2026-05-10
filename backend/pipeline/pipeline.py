@@ -4,7 +4,7 @@ from backend.services.download_file_service import DownloadFileService
 from backend.services.process_file_service import ProcessFileService
 from backend.util.enums import Instrument, FileStatus
 from backend.pipeline.models import RunLivePipelineResult, GetProcessedFramesResult, SyncProcessedFramesResult, SyncSlotsResult
-from backend.util.funcs import _to_utc
+from backend.util.funcs import parse_utc_datetime
 from datetime import datetime, UTC, timedelta
 import logging
 
@@ -60,7 +60,7 @@ class Pipeline:
             extra={"instrument":instrument}
         )
         try:
-            now = datetime.now(UTC).isoformat()
+            now = datetime.now(UTC)
             
             slot = self.slot_service.sync_and_get_active_slot()
             if not slot:
@@ -121,11 +121,14 @@ class Pipeline:
             }
         )
         try:
+            observation_start_dt = parse_utc_datetime(observation_start_utc)
+            observation_end_dt = parse_utc_datetime(observation_end_utc)
+
             processed_files = self.process_service.get_files_by_observation_and_status(
                 instrument, 
                 FileStatus.PROCESSED, 
-                observation_start_utc, 
-                observation_end_utc
+                observation_start_dt, 
+                observation_end_dt
             )
             logger.info(
                 "Processed frames retrieval pipeline completed",
@@ -164,22 +167,21 @@ class Pipeline:
             }
         )
         try:
-            obs_start_dt = _to_utc(observation_start_utc)
-            obs_end_dt = _to_utc(observation_end_utc)
-            now_utc = datetime.now(UTC).isoformat()
+            observation_start_dt = parse_utc_datetime(observation_start_utc)
+            observation_end_dt = parse_utc_datetime(observation_end_utc)
+            now_utc = datetime.now(UTC)
 
-            padded_start = (obs_start_dt - timedelta(hours=12)).isoformat()
-            padded_end = min(obs_end_dt + timedelta(hours=12),now_utc).isoformat()
+            padded_start = observation_start_dt - timedelta(hours=12)
+            padded_end = min(observation_end_dt + timedelta(hours=12), now_utc)
 
             metadata_synced = self.metadata_service.sync_metadata(instrument,padded_start,padded_end)
 
             self.download_service.recover_stale_files(now_utc, instrument)
-            downloaded = self.download_service.download_files_by_observation(instrument,observation_start_utc,observation_end_utc)
+            downloaded = self.download_service.download_files_by_observation(instrument,observation_start_dt,observation_end_dt)
 
             self.process_service.recover_stale_files(now_utc, instrument)
-            marked_ready = self.process_service.mark_ready_files_for_processing(instrument, observation_start_utc, observation_end_utc)
-            processed = self.process_service.process_pending_files(instrument, observation_start_utc, observation_end_utc)
-
+            marked_ready = self.process_service.mark_ready_files_for_processing(instrument, observation_start_dt, observation_end_dt)
+            processed = self.process_service.process_pending_files(instrument, observation_start_dt, observation_end_dt)
             logger.info(
                 "Processed frames sync pipeline completed",
                 extra={
