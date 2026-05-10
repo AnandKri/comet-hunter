@@ -19,6 +19,7 @@ class SyncFramesResponse(BaseModel):
     processed: int
 
 class SyncSlotsResponse(BaseModel):
+    status: str
     slots_synced: int
 
 class SchedulerStatusResponse(BaseModel):
@@ -35,6 +36,7 @@ class SchedulerStopResponse(BaseModel):
     running: bool
 
 class HealthResponse(BaseModel):
+    status: str
     database: bool
     scheduler_initialized: bool
     pipeline_initialized: bool

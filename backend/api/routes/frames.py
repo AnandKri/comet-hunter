@@ -1,21 +1,22 @@
 from fastapi import APIRouter, Query, Depends
 from backend.api.dependencies import get_pipeline
+from backend.api.dto.serializers import serialize_get_frames_response
 from backend.util.enums import Instrument
-from backend.api.schemas import GetFramesResponse, SyncFramesResponse, ProcessedFileResponse
+from backend.api.dto.api_response import ApiSuccessResponse
+from backend.api.dto.response_models import GetFramesResponse, SyncFramesResponse
 from backend.pipeline.pipeline import Pipeline
-from datetime import datetime
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/", response_model=GetFramesResponse)
+@router.get("/", response_model=ApiSuccessResponse[GetFramesResponse])
 def get_processed_frames(
     instrument: Instrument = Query(...),
     start: str = Query(..., description = "ISO UTC observation start time"),
     end: str = Query(..., description = "ISO UTC observation end time"),
     pipeline: Pipeline = Depends(get_pipeline)
-) -> GetFramesResponse:
+) -> ApiSuccessResponse[GetFramesResponse]:
     """
     Fetch processed frames for a given observation window and instrument
     """
@@ -29,34 +30,24 @@ def get_processed_frames(
     )
     try:
         result = pipeline.get_processed_frames(instrument, start, end)
-        
-        files = [
-            ProcessedFileResponse(
-                processed_file_name = file.processed_file_name,
-                instrument = file.instrument,
-                processed_file_path = file.processed_file_path,
-                datetime_of_observation=datetime.fromisoformat(file.datetime_of_observation)
-            )
-            for file in result.processed_files
-        ]
-        logger.info(
-            "Processed frames retrieved"
-        )
 
-        return GetFramesResponse(
-            files=files
+        logger.info("Processed frames retrieved")
+
+        return ApiSuccessResponse[GetFramesResponse](
+            data=serialize_get_frames_response(result)
         )
+    
     except Exception:
         logger.exception("Processed frames retrieval failed")
         raise
 
-@router.post("/sync", response_model=SyncFramesResponse)
+@router.post("/sync", response_model=ApiSuccessResponse[SyncFramesResponse])
 def sync_processed_frames(
     instrument: Instrument = Query(...),
     start: str = Query(..., description = "ISO UTC observation start time"),
     end: str = Query(..., description = "ISO UTC observation end time"),
     pipeline: Pipeline = Depends(get_pipeline)
-) -> SyncFramesResponse:
+) -> ApiSuccessResponse[SyncFramesResponse]:
     """
     Sync and update processed frames based on instrument and observation time
 
@@ -78,11 +69,13 @@ def sync_processed_frames(
 
         logger.info("Processed frames synced")
 
-        return SyncFramesResponse(
-            metadata_synced=result.metadata_synced,
-            downloaded=result.downloaded,
-            marked_ready=result.marked_ready,
-            processed=result.processed
+        return ApiSuccessResponse[SyncFramesResponse](
+            data=SyncFramesResponse(
+                metadata_synced=result.metadata_synced,
+                downloaded=result.downloaded,
+                marked_ready=result.marked_ready,
+                processed=result.processed
+            )
         )
     except Exception:
         logger.exception("Processed frames sync failed")
