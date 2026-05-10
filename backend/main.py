@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from backend.api.dto.api_response import ApiErrorResponse, ApiErrorDetail
 from contextlib import asynccontextmanager
 from backend.database.infrastructure.bootstrap import bootstrap_database
 from backend.core.logging_config import setup_logging
@@ -12,12 +14,42 @@ async def lifespan(app: FastAPI):
     bootstrap_database()
     yield
     scheduler = get_scheduler()
-    scheduler.shutdown()
+    scheduler.stop()
 
 app = FastAPI(
     title="Comet Hunter API",
     lifespan=lifespan
 )
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
+    
+    response = ApiErrorResponse(
+        error=ApiErrorDetail(
+            code="VALIDATION_ERROR",
+            message=str(exc)
+        )
+    )
+
+    return JSONResponse(
+        status_code=400,
+        content=response.model_dump()
+    )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    
+    response = ApiErrorResponse(
+        error=ApiErrorDetail(
+            code="INTERNAL_SERVER_ERROR",
+            message="Unexpected server error"
+        )
+    )
+
+    return JSONResponse(
+        status_code=500,
+        content=response.model_dump()
+    )
 
 app.add_middleware(LoggingMiddleware)
 
