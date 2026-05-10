@@ -43,10 +43,10 @@ Produce consistent, time-aligned frames.
 
 ---
 
-### Phase 4 — Retrieval API (In Progress)
+### Phase 4 — Retrieval API (Implemented)
 
 - Time-sorted retrieval endpoints
-- Pagination
+- Pagination [not covered currently]
 - Metadata filtering
 - Observability instrumentation
 
@@ -55,7 +55,7 @@ Enable reliable chronological inspection.
 
 ---
 
-### Phase 5 — Visualization Layer
+### Phase 5 — Visualization Layer (In Progress)
 
 - Frame playback
 - Timeline scrubbing

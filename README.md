@@ -80,11 +80,9 @@ Implemented:
 - Processing pipeline
 - Image processing algorithm
 - REST retrieval API
-
-In progress:
 - Logging configuration
 
-Planned:
+In progress:
 - Interactive chronological UI
 
 ---
