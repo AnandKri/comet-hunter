@@ -260,6 +260,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#context-inspiration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context &amp; Inspiration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#core-capabilities" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -332,6 +343,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#engineering-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engineering Principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#technologies" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -339,6 +361,56 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Technologies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend &amp; API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#database-persistence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database &amp; Persistence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scientific-computing-image-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scientific Computing &amp; Image Processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architecture-tooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture &amp; Tooling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1134,6 +1206,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#context-inspiration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context &amp; Inspiration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#core-capabilities" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1206,6 +1289,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#engineering-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engineering Principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#technologies" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1213,6 +1307,56 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Technologies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend &amp; API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#database-persistence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database &amp; Persistence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scientific-computing-image-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scientific Computing &amp; Image Processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architecture-tooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture &amp; Tooling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1245,16 +1389,20 @@
 
 
 <h1 id="comet-hunter">Comet Hunter<a class="headerlink" href="#comet-hunter" title="Permanent link">&para;</a></h1>
-<p>Comet Hunter is a modular data pipeline for ingesting, tracking, downloading, and processing LASCO coronagraph imagery from the SOHO mission.</p>
-<p>The system is designed around reliability, deterministic state transitions, and idempotent execution for long-running astronomical data workflows.</p>
+<p><strong>Comet Hunter</strong> is a tool to help citizen scientists discover <a href="https://www.esa.int/Science_Exploration/Space_Science/Sungrazer_comets">sungrazing comets</a>.  </p>
+<p>The project serves as an engineering exercise in building fault-tolerant data pipelines, immutable state-driven workflows, and recovery-oriented backend systems.</p>
+<p>It explores scientific computing, concurrent processing, and orchestration patterns in a real-world observational data context.</p>
+<h2 id="context-inspiration">Context &amp; Inspiration<a class="headerlink" href="#context-inspiration" title="Permanent link">&para;</a></h2>
+<p>NASA's Sungrazer Project enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over <strong>four thousand</strong> comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — <strong>C2</strong> and <strong>C3</strong>. Images from these telescopes are primarily used for reporting new comets.</p>
+<p>For comet discovery, users may rely on commercially available tools or software to streamline parts of the workflow or assist in identifying potential comets. However, there is no single platform that streamlines the end-to-end comet hunting process. <strong>Comet Hunter</strong> was created with the aim of helping bridge this gap.</p>
 <hr />
 <h2 id="core-capabilities">Core Capabilities<a class="headerlink" href="#core-capabilities" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Synchronization of LASCO metadata and downlink schedules</li>
 <li>Automated FITS file discovery and downloading</li>
-<li>Image processing for:</li>
-<li><strong>C2</strong> → unsharp masking</li>
-<li><strong>C3</strong> → running difference</li>
+<li>Image processing algorithm for:</li>
+<li><strong>C2</strong> : Unsharp masking</li>
+<li><strong>C3</strong> : Running difference</li>
 <li>Persistent lifecycle tracking using SQLite</li>
 <li>Concurrent download and processing execution</li>
 <li>Retry-safe and recovery-oriented workflows</li>
@@ -1265,27 +1413,28 @@
        ↓
 Metadata Synchronization
        ↓
-File Discovery
-       ↓
-FITS Download
+File Discovery and Download
        ↓
 READY State Resolution
        ↓
 Image Processing
        ↓
-Processed Outputs
+Visualization of Processed Outputs
 </code></pre></div>
 <hr />
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
 <p>The project follows a layered architecture with clear separation of concerns:</p>
-<div class="highlight"><pre><span></span><code>Domain
+<div class="highlight"><pre><span></span><code>API
   ↓
-Repositories
+Pipeline
   ↓
 Services
   ↓
+Repositories
+  ↓
 Infrastructure
 </code></pre></div>
+<p><code>Domain</code> entities are shared across services and repositories.</p>
 <h3 id="layers">Layers<a class="headerlink" href="#layers" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1296,20 +1445,28 @@ Infrastructure
 </thead>
 <tbody>
 <tr>
-<td>Domain</td>
-<td>Immutable business entities and lifecycle rules</td>
+<td>API</td>
+<td>Entry points for triggering synchronization and processing workflows</td>
 </tr>
 <tr>
-<td>Repository</td>
-<td>SQLite persistence and query abstraction</td>
+<td>Pipeline</td>
+<td>Coordinates end-to-end execution across ingestion, download, and processing stages</td>
 </tr>
 <tr>
 <td>Service</td>
-<td>Pipeline orchestration and workflow execution</td>
+<td>Encapsulates business workflows, lifecycle transitions, and recovery logic</td>
+</tr>
+<tr>
+<td>Repository</td>
+<td>Handles SQLite persistence, query abstraction, and state retrieval</td>
 </tr>
 <tr>
 <td>Infrastructure</td>
-<td>Database connection and execution layer</td>
+<td>Provides low-level database connection and query execution mechanisms</td>
+</tr>
+<tr>
+<td>Domain</td>
+<td>Immutable entities and deterministic lifecycle/state transition rules shared across layers</td>
 </tr>
 </tbody>
 </table>
@@ -1332,48 +1489,60 @@ PROCESSED
 <hr />
 <h2 id="key-design-principles">Key Design Principles<a class="headerlink" href="#key-design-principles" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Idempotent execution</strong></li>
 <li>
-<p>Re-running workflows does not duplicate processing.</p>
+<p><strong>Idempotent execution</strong> : Re-running workflows does not duplicate processing.</p>
 </li>
 <li>
-<p><strong>State-driven orchestration</strong></p>
+<p><strong>State-driven orchestration</strong> : File transitions are strictly controlled through lifecycle rules.</p>
 </li>
 <li>
-<p>File transitions are strictly controlled through lifecycle rules.</p>
+<p><strong>Recovery-oriented workflows</strong> : Stale downloads and processing tasks can be recovered safely.</p>
 </li>
 <li>
-<p><strong>Recovery-oriented workflows</strong></p>
+<p><strong>Concurrent execution</strong> : Parallel downloading and processing using worker pools.</p>
 </li>
 <li>
-<p>Stale downloads and processing tasks can be recovered safely.</p>
+<p><strong>Repository abstraction</strong> : Database access is centralized through query specifications and executors.</p>
 </li>
-<li>
-<p><strong>Concurrent execution</strong></p>
-</li>
-<li>
-<p>Parallel downloading and processing using worker pools.</p>
-</li>
-<li>
-<p><strong>Repository abstraction</strong></p>
-</li>
-<li>Database access is centralized through query specifications and executors.</li>
 </ul>
 <hr />
+<h2 id="engineering-principles">Engineering Principles<a class="headerlink" href="#engineering-principles" title="Permanent link">&para;</a></h2>
+<p>The project emphasizes clean system design, modular architecture, and explicit separation of concerns across domain, service, repository, and infrastructure layers.</p>
+<p>The codebase follows strongly typed interfaces, immutable domain modeling, structured data abstractions, deterministic lifecycle management, validation-first workflows, and extensive inline documentation through type hints and docstrings.</p>
+<p>Additional focus is placed on observability, maintainability, naming consistency, and production-oriented backend engineering practices.</p>
+<hr />
 <h2 id="technologies">Technologies<a class="headerlink" href="#technologies" title="Permanent link">&para;</a></h2>
+<h3 id="backend-api">Backend &amp; API<a class="headerlink" href="#backend-api" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Python</li>
-<li>SQLite</li>
 <li>FastAPI</li>
+</ul>
+<h3 id="database-persistence">Database &amp; Persistence<a class="headerlink" href="#database-persistence" title="Permanent link">&para;</a></h3>
+<ul>
+<li>SQLite</li>
+<li>WAL journaling</li>
+</ul>
+<h3 id="scientific-computing-image-processing">Scientific Computing &amp; Image Processing<a class="headerlink" href="#scientific-computing-image-processing" title="Permanent link">&para;</a></h3>
+<ul>
+<li>NumPy</li>
+<li>SciPy</li>
+<li>SunPy</li>
+<li>Matplotlib</li>
+</ul>
+<h3 id="architecture-tooling">Architecture &amp; Tooling<a class="headerlink" href="#architecture-tooling" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Repository-Service-Domain architecture</li>
+<li>Immutable dataclass-based domain modeling</li>
+<li>Concurrent execution with ThreadPoolExecutor</li>
 </ul>
 <hr />
 <h2 id="project-goals">Project Goals<a class="headerlink" href="#project-goals" title="Permanent link">&para;</a></h2>
 <p>Comet Hunter is intended to serve as:</p>
 <ul>
-<li>A production-style astronomical data pipeline</li>
-<li>A reliable FITS ingestion and processing framework</li>
-<li>A foundation for future comet detection and analysis workflows</li>
-<li>A reference implementation for state-driven scientific processing systems</li>
+<li>A production-oriented scientific data pipeline emphasizing deterministic lifecycle management and recovery-safe workflows</li>
+<li>An exploration of fault-tolerant backend architecture using lightweight infrastructure and modular system design</li>
+<li>A foundation for future comet detection, temporal image analysis, and automated observational workflows</li>
+<li>A reference implementation for state-driven orchestration, scientific image processing, and resilient ingestion systems</li>
 </ul>
 
 
