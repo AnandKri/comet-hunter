@@ -7,6 +7,9 @@ venv/
 # mkdocs build files
 site/
 
+#logs
+logs/
+
 # misc. files
 plan.txt
 process_c2.py

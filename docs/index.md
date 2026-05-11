@@ -1,8 +1,16 @@
 # Comet Hunter
 
-Comet Hunter is a modular data pipeline for ingesting, tracking, downloading, and processing LASCO coronagraph imagery from the SOHO mission.
+**Comet Hunter** is a tool to help citizen scientists discover [sungrazing comets](https://www.esa.int/Science_Exploration/Space_Science/Sungrazer_comets).  
 
-The system is designed around reliability, deterministic state transitions, and idempotent execution for long-running astronomical data workflows.
+The project serves as an engineering exercise in building fault-tolerant data pipelines, immutable state-driven workflows, and recovery-oriented backend systems.
+
+It explores scientific computing, concurrent processing, and orchestration patterns in a real-world observational data context.
+
+## Context & Inspiration
+
+NASA's Sungrazer Project enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over **four thousand** comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — **C2** and **C3**. Images from these telescopes are primarily used for reporting new comets.
+
+For comet discovery, users may rely on commercially available tools or software to streamline parts of the workflow or assist in identifying potential comets. However, there is no single platform that streamlines the end-to-end comet hunting process. **Comet Hunter** was created with the aim of helping bridge this gap.
 
 ---
 
@@ -10,9 +18,9 @@ The system is designed around reliability, deterministic state transitions, and 
 
 - Synchronization of LASCO metadata and downlink schedules
 - Automated FITS file discovery and downloading
-- Image processing for:
-  - **C2** → unsharp masking
-  - **C3** → running difference
+- Image processing algorithm for:
+  - **C2** : Unsharp masking
+  - **C3** : Running difference
 - Persistent lifecycle tracking using SQLite
 - Concurrent download and processing execution
 - Retry-safe and recovery-oriented workflows
@@ -26,15 +34,13 @@ Downlink Slots
        ↓
 Metadata Synchronization
        ↓
-File Discovery
-       ↓
-FITS Download
+File Discovery and Download
        ↓
 READY State Resolution
        ↓
 Image Processing
        ↓
-Processed Outputs
+Visualization of Processed Outputs
 ```
 
 ---
@@ -44,23 +50,30 @@ Processed Outputs
 The project follows a layered architecture with clear separation of concerns:
 
 ```text
-Domain
+API
   ↓
-Repositories
+Pipeline
   ↓
 Services
   ↓
+Repositories
+  ↓
 Infrastructure
 ```
+
+`Domain` entities are shared across services and repositories.
+
 
 ### Layers
 
 | Layer | Responsibility |
 |---|---|
-| Domain | Immutable business entities and lifecycle rules |
-| Repository | SQLite persistence and query abstraction |
-| Service | Pipeline orchestration and workflow execution |
-| Infrastructure | Database connection and execution layer |
+| API | Entry points for triggering synchronization and processing workflows |
+| Pipeline | Coordinates end-to-end execution across ingestion, download, and processing stages |
+| Service | Encapsulates business workflows, lifecycle transitions, and recovery logic |
+| Repository | Handles SQLite persistence, query abstraction, and state retrieval |
+| Infrastructure | Provides low-level database connection and query execution mechanisms |
+| Domain | Immutable entities and deterministic lifecycle/state transition rules shared across layers |
 
 ---
 
@@ -88,36 +101,54 @@ Recovery and retry states are also supported for fault tolerance and resumabilit
 
 ## Key Design Principles
 
-- **Idempotent execution**
-  - Re-running workflows does not duplicate processing.
+- **Idempotent execution** : Re-running workflows does not duplicate processing.
 
-- **State-driven orchestration**
-  - File transitions are strictly controlled through lifecycle rules.
+- **State-driven orchestration** : File transitions are strictly controlled through lifecycle rules.
 
-- **Recovery-oriented workflows**
-  - Stale downloads and processing tasks can be recovered safely.
+- **Recovery-oriented workflows** : Stale downloads and processing tasks can be recovered safely.
 
-- **Concurrent execution**
-  - Parallel downloading and processing using worker pools.
+- **Concurrent execution** : Parallel downloading and processing using worker pools.
 
-- **Repository abstraction**
-  - Database access is centralized through query specifications and executors.
+- **Repository abstraction** : Database access is centralized through query specifications and executors.
 
 ---
 
+## Engineering Principles
+
+The project emphasizes clean system design, modular architecture, and explicit separation of concerns across domain, service, repository, and infrastructure layers.
+
+The codebase follows strongly typed interfaces, immutable domain modeling, structured data abstractions, deterministic lifecycle management, validation-first workflows, and extensive inline documentation through type hints and docstrings.
+
+Additional focus is placed on observability, maintainability, naming consistency, and production-oriented backend engineering practices.
+
+---
 ## Technologies
 
+### Backend & API
 - Python
-- SQLite
 - FastAPI
 
+### Database & Persistence
+- SQLite
+- WAL journaling
+
+### Scientific Computing & Image Processing
+- NumPy
+- SciPy
+- SunPy
+- Matplotlib
+
+### Architecture & Tooling
+- Repository-Service-Domain architecture
+- Immutable dataclass-based domain modeling
+- Concurrent execution with ThreadPoolExecutor
 ---
 
 ## Project Goals
 
 Comet Hunter is intended to serve as:
 
-- A production-style astronomical data pipeline
-- A reliable FITS ingestion and processing framework
-- A foundation for future comet detection and analysis workflows
-- A reference implementation for state-driven scientific processing systems
+- A production-oriented scientific data pipeline emphasizing deterministic lifecycle management and recovery-safe workflows
+- An exploration of fault-tolerant backend architecture using lightweight infrastructure and modular system design
+- A foundation for future comet detection, temporal image analysis, and automated observational workflows
+- A reference implementation for state-driven orchestration, scientific image processing, and resilient ingestion systems
