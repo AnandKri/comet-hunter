@@ -40,3 +40,7 @@ class HealthResponse(BaseModel):
     database: bool
     scheduler_initialized: bool
     pipeline_initialized: bool
+
+class SlotResponse(BaseModel):
+    start: Optional[datetime]
+    end: Optional[datetime]

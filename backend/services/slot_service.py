@@ -255,3 +255,14 @@ class SlotService:
             return None
         
         return next_active_slot.bot_utc - now
+    
+    def get_next_active_slot(self) -> Optional[DownlinkSlot]:
+        """
+        Returns the next active slot if present. This is intended to be used
+        after no active slot is found and next upcoming active slot is required.
+
+        :return: Active DownlinkSlot if available, else None
+        """
+        now = datetime.now(UTC)
+
+        return self._slot_repository.get_next_active_slot(now)

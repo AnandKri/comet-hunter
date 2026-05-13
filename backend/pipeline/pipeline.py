@@ -3,7 +3,7 @@ from backend.services.metadata_service import MetadataService
 from backend.services.download_file_service import DownloadFileService
 from backend.services.process_file_service import ProcessFileService
 from backend.util.enums import Instrument, FileStatus
-from backend.pipeline.models import RunLivePipelineResult, GetProcessedFramesResult, SyncProcessedFramesResult, SyncSlotsResult
+from backend.pipeline.models import RunLivePipelineResult, GetProcessedFramesResult, SyncProcessedFramesResult, SyncSlotsResult, SlotResult
 from backend.util.funcs import parse_utc_datetime
 from datetime import datetime, UTC, timedelta
 import logging
@@ -42,6 +42,56 @@ class Pipeline:
             )
         except Exception:
             logger.exception("Slot sync pipeline failed")
+            raise
+    
+    def get_active_slot(self) -> SlotResult:
+        """
+        Get details of active slot if present
+        """
+        logger.info("Get active slot pipeline started")
+        try:
+            active_slot = self.slot_service.get_active_slot()
+            
+            if active_slot:
+                logger.info(
+                    "Active slot found",
+                    extra={"start": active_slot.bot_utc, 
+                           "end": active_slot.eot_utc}
+                )
+            else:
+                logger.info("No active slot found")
+            
+            return SlotResult(
+                start=active_slot.bot_utc if active_slot else None,
+                end=active_slot.eot_utc if active_slot else None
+            )
+        except Exception:
+            logger.exception("Get active slot pipeline failed")
+            raise
+    
+    def get_next_active_slot(self) -> SlotResult:
+        """
+        Get details of next active slot if present
+        """
+        logger.info("Get next active slot pipeline started")
+        try:
+            next_active_slot = self.slot_service.get_next_active_slot()
+            
+            if next_active_slot:
+                logger.info(
+                    "Next active slot found",
+                    extra={"start": next_active_slot.bot_utc, 
+                           "end": next_active_slot.eot_utc}
+                )
+            else:
+                logger.info("No next active slot found")
+            
+            return SlotResult(
+                start=next_active_slot.bot_utc if next_active_slot else None,
+                end=next_active_slot.eot_utc if next_active_slot else None
+            )
+        except Exception:
+            logger.exception("Get next active slot pipeline failed")
             raise
     
     def run_live_pipeline(self, instrument: Instrument) -> RunLivePipelineResult:

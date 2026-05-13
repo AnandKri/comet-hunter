@@ -25,6 +25,11 @@ class SyncSlotsResult:
     slots_synced: int
 
 @dataclass
+class SlotResult:
+    start: Optional[datetime]
+    end: Optional[datetime]
+
+@dataclass
 class SchedulerStatusResult:
     running: bool
     next_run_at: Optional[datetime]
