@@ -112,7 +112,7 @@ class Pipeline:
         try:
             now = datetime.now(UTC)
             
-            slot = self.slot_service.sync_and_get_active_slot()
+            slot = self.slot_service.get_active_slot()
             if not slot:
                 next_run = self.slot_service.next_active_slot_in()
                 logger.info(

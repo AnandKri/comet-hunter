@@ -138,52 +138,47 @@ class SlotService:
     
     def get_active_slot(self) -> Optional[DownlinkSlot]:
         """
-        Fetch active slot if available.
-        
-        :return: returns DownlinkSlot domain entity of active slot if present
-        """
+        Return the current active slot if available.
 
-        return self._slot_repository.get_active_slot()
-    
-    def sync_and_get_active_slot(self) -> Optional[DownlinkSlot]:
-        """
-        Performs slot lifecycle synchronization and optionally returns 
-        active slot if any.
-
-        Steps:
-        1. Marks expired PENDING slots as MISSED
-        2. Returns existing ACTIVE slot if present
-        3. Otherwise claims next eligible PENDING slot as ACTIVE
-
-        This method is intended to be called during system initialization
-        or scheduling cycles.
+        Workflow:
+        1. Reconcile expired slot states
+        2. Return existing ACTIVE slot if present
+        3. Claim next eligible PENDING slot if applicable
 
         :return: Active DownlinkSlot if available, else None
         """
-        logger.info("Active slot synchronization started")
-        try:
-            now = datetime.now(UTC)
 
-            self._slot_repository.mark_expired_active_as_missed(now)
-            self._slot_repository.mark_expired_pending_as_missed(now)
+        logger.info("Active slot retrieval started")
+
+        try:
+            self.reconcile_slot_states()
 
             active = self._slot_repository.get_active_slot()
+
             if active:
                 logger.info(
                     "Existing active slot found",
-                    extra={"downlink_start_utc": active.bot_utc,
-                        "downlink_end_utc": active.eot_utc}
+                    extra={
+                        "downlink_start_utc": active.bot_utc,
+                        "downlink_end_utc": active.eot_utc
+                    }
                 )
                 return active
-            
+
             logger.info("No existing active slot found")
 
+            now = datetime.now(UTC)
+
             slot = self._slot_repository.get_next_claimable_slot(now)
+
             if not slot:
                 logger.info("No claimable pending slot found")
                 return None
 
-            slot = self._slot_repository.update_status(SlotStatus.ACTIVE, slot)
+            slot = self._slot_repository.update_status(
+                SlotStatus.ACTIVE,
+                slot
+            )
 
             logger.info(
                 "Pending slot claimed as active",
@@ -194,10 +189,35 @@ class SlotService:
             )
 
             return slot
-        
+
         except Exception:
-            logger.exception("Active slot synchronization failed")
+            logger.exception("Active slot retrieval failed")
             raise
+    
+    def reconcile_slot_states(self) -> None:
+        """
+        Reconcile slot lifecycle states based on current UTC time.
+
+        Transitions:
+        - ACTIVE -> MISSED
+        - PENDING -> MISSED
+
+        :return: None
+        """
+        logger.info("Slot state reconciliation started")
+
+        try:
+            now = datetime.now(UTC)
+
+            self._slot_repository.mark_expired_active_as_missed(now)
+            self._slot_repository.mark_expired_pending_as_missed(now)
+
+            logger.info("Slot state reconciliation completed")
+
+        except Exception:
+            logger.exception("Slot state reconciliation failed")
+            raise
+
 
     def delete_completed_slots(self) -> int:
         """
