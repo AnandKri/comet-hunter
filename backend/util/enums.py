@@ -65,3 +65,16 @@ class Instrument(Enum):
 
     def __str__(self):
         return self.value
+
+class JobStatus(Enum):
+    """
+    Contains Enum values for status of 
+    background jobs.
+    """
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+    def __str__(self):
+        return self.value

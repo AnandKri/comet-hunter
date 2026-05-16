@@ -1,17 +1,22 @@
 import logging
 from fastapi import APIRouter, Depends
 from backend.api.dto.api_response import ApiSuccessResponse
-from backend.api.dto.response_models import SlotResponse, SyncSlotsResponse
-from backend.api.dependencies import get_pipeline
+from backend.api.dto.response_models import SlotResponse, JobQueuedResponse
+from backend.api.dependencies import get_pipeline, get_job_store
+from backend.jobs.job_store import JobStore
 from backend.pipeline.pipeline import Pipeline
+from threading import Thread
+from backend.util.enums import JobStatus
+from backend.jobs.runner import run_job
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.post("/sync", response_model=ApiSuccessResponse[SyncSlotsResponse])
+@router.post("/sync", response_model=ApiSuccessResponse[JobQueuedResponse])
 def sync_slots(
-    pipeline: Pipeline = Depends(get_pipeline)
-) -> ApiSuccessResponse[SyncSlotsResponse]:
+    pipeline: Pipeline = Depends(get_pipeline),
+    job_store: JobStore = Depends(get_job_store)
+) -> ApiSuccessResponse[JobQueuedResponse]:
     """
     Trigger slot synchronization
 
@@ -20,22 +25,31 @@ def sync_slots(
 
     returns number of slots synced
     """
-    logger.info("Slots sync triggered")
+    logger.info("Slots sync job triggered")
 
     try:
-        result = pipeline.sync_slots()
+        job = job_store.create_job("sync_slots")
 
-        logger.info("Slots sync completed")
+        thread = Thread(
+            target=run_job, 
+            args=(job.id, pipeline.sync_slots),
+            daemon=True
+        )
+        thread.start()
+        
+        logger.info("Slots sync job queued", 
+                    extra={"job_id": job.id})
 
-        return ApiSuccessResponse[SyncSlotsResponse](
-            data=SyncSlotsResponse(
-                status="completed",
-                slots_synced=result.slots_synced
+        return ApiSuccessResponse[JobQueuedResponse](
+            data=JobQueuedResponse(
+                job_id=job.id,
+                status=job.status.value
             )
         )
     
     except Exception:
-        logger.exception("Slots sync failed")
+        logger.exception("Slots sync job failed to start", 
+                         extra={"job_id": job.id if job else None})
         raise
 
 @router.get("/active", response_model=ApiSuccessResponse[SlotResponse])

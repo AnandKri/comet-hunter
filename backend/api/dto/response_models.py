@@ -1,7 +1,7 @@
 from backend.util.enums import Instrument
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Any
 
 class ProcessedFileResponse(BaseModel):
     processed_file_name: str
@@ -44,3 +44,13 @@ class HealthResponse(BaseModel):
 class SlotResponse(BaseModel):
     start: Optional[datetime]
     end: Optional[datetime]
+
+class JobQueuedResponse:
+    job_id: str
+    status: str
+
+class JobStatusResponse:
+    job_id: str
+    status: str
+    result: Optional[Any]
+    error: Optional[str]
