@@ -1,9 +1,6 @@
 import requests
 from typing import Any
-from config import BASE_URL
-
-REQUEST_TIMEOUT: int = 10
-
+from config import SERVER_BASE_URL, REQUEST_TIMEOUT
 
 def health_check() -> bool:
     """
@@ -17,7 +14,7 @@ def health_check() -> bool:
 
     try:
         response = requests.get(
-            f"{BASE_URL}/health",
+            f"{SERVER_BASE_URL}/health",
             timeout=REQUEST_TIMEOUT
         )
 
@@ -42,7 +39,7 @@ def get_active_slot() -> dict[str, Any] | None:
 
     try:
         response = requests.get(
-            f"{BASE_URL}/slots/active",
+            f"{SERVER_BASE_URL}/slots/active",
             timeout=REQUEST_TIMEOUT
         )
 
@@ -67,7 +64,7 @@ def get_next_active_slot() -> dict[str, Any] | None:
 
     try:
         response = requests.get(
-            f"{BASE_URL}/slots/next-active",
+            f"{SERVER_BASE_URL}/slots/next-active",
             timeout=REQUEST_TIMEOUT
         )
 
@@ -92,7 +89,7 @@ def sync_slots() -> dict[str, Any] | None:
 
     try:
         response = requests.post(
-            f"{BASE_URL}/slots/sync",
+            f"{SERVER_BASE_URL}/slots/sync",
             timeout=REQUEST_TIMEOUT
         )
 
@@ -119,7 +116,7 @@ def get_job_status(job_id: str) -> dict[str, Any] | None:
 
     try:
         response = requests.get(
-            f"{BASE_URL}/jobs/{job_id}",
+            f"{SERVER_BASE_URL}/jobs/{job_id}",
             timeout=REQUEST_TIMEOUT
         )
 

@@ -1,5 +1,6 @@
 from nicegui import ui
 from services.api import sync_slots, get_job_status
+from config import REFRESH_INTERVAL_SECONDS
 
 def sync_slots_panel() -> None:
 
@@ -12,7 +13,7 @@ def sync_slots_panel() -> None:
         current_job_id: str | None = None
 
         def schedule_poll() -> None:
-            ui.timer(interval=2.0,callback=poll_job,once=True)
+            ui.timer(interval=REFRESH_INTERVAL_SECONDS,callback=poll_job,once=True)
 
         def poll_job() -> None:
 

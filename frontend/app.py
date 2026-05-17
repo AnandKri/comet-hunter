@@ -1,5 +1,5 @@
 from nicegui import ui
-from config import TITLE
+from config import TITLE, PORT
 from components.footer import footer
 from components.health_panel import health_panel
 from components.image_panel import image_panel
@@ -38,7 +38,7 @@ def main() -> None:
 
     ui.run(
         host="0.0.0.0",
-        port=8080,
+        port=PORT,
         reload=False,
         title=TITLE
     )
