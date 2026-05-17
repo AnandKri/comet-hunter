@@ -45,11 +45,11 @@ class SlotResponse(BaseModel):
     start: Optional[datetime]
     end: Optional[datetime]
 
-class JobQueuedResponse:
+class JobQueuedResponse(BaseModel):
     job_id: str
     status: str
 
-class JobStatusResponse:
+class JobStatusResponse(BaseModel):
     job_id: str
     status: str
     result: Optional[Any]
