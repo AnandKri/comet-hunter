@@ -2,12 +2,10 @@ import logging
 from fastapi import APIRouter, Depends
 from backend.api.dto.api_response import ApiSuccessResponse
 from backend.api.dto.response_models import SlotResponse, JobQueuedResponse
-from backend.api.dependencies import get_pipeline, get_job_store
-from backend.jobs.job_store import JobStore
+from backend.api.dependencies import get_pipeline, get_job_service
 from backend.pipeline.pipeline import Pipeline
-from threading import Thread
-from backend.util.enums import JobStatus
-from backend.jobs.runner import run_job
+from backend.jobs.background_job_service import BackgroundJobService
+from backend.util.enums import JobType
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -15,7 +13,7 @@ logger = logging.getLogger(__name__)
 @router.post("/sync", response_model=ApiSuccessResponse[JobQueuedResponse])
 def sync_slots(
     pipeline: Pipeline = Depends(get_pipeline),
-    job_store: JobStore = Depends(get_job_store)
+    background_job_service: BackgroundJobService = Depends(get_job_service)
 ) -> ApiSuccessResponse[JobQueuedResponse]:
     """
     Trigger slot synchronization
@@ -28,15 +26,8 @@ def sync_slots(
     logger.info("Slots sync job triggered")
 
     try:
-        job = job_store.create_job("sync_slots")
+        job = background_job_service.submit(JobType.SYNC_SLOTS, pipeline.sync_slots)
 
-        thread = Thread(
-            target=run_job, 
-            args=(job.id, pipeline.sync_slots),
-            daemon=True
-        )
-        thread.start()
-        
         logger.info("Slots sync job queued", 
                     extra={"job_id": job.id})
 
@@ -48,8 +39,7 @@ def sync_slots(
         )
     
     except Exception:
-        logger.exception("Slots sync job failed to start", 
-                         extra={"job_id": job.id if job else None})
+        logger.exception("Slots sync job failed to start")
         raise
 
 @router.get("/active", response_model=ApiSuccessResponse[SlotResponse])
