@@ -9,7 +9,10 @@ from backend.services.process_file_service import ProcessFileService
 from backend.services.slot_service import SlotService
 from backend.pipeline.pipeline import Pipeline
 from backend.pipeline.scheduler import Scheduler
-from backend.jobs.job_store import JobStore, job_store
+from backend.jobs.job_store import job_store
+from backend.jobs.background_job_service import BackgroundJobService
+
+background_job_service = BackgroundJobService(job_store)
 
 executor = QueryExecutor()
 
@@ -51,9 +54,9 @@ def get_scheduler() -> Scheduler:
     """
     return scheduler
 
-def get_job_store() -> JobStore:
+def get_job_service() -> BackgroundJobService:
     """
-    Returns shared in-memory job store instance.
-    Used for tracking background job states across API requests.
+    Returns shared background job service instance.
+    Used for submitting and managing background jobs.
     """
-    return job_store
+    return background_job_service
