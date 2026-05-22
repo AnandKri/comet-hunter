@@ -1,24 +1,25 @@
 from fastapi import APIRouter, Query, Depends
-from backend.api.dependencies import get_pipeline
-from backend.api.dto.serializers import serialize_get_frames_response
-from backend.util.enums import Instrument
+from backend.api.dependencies import get_pipeline, get_job_service
+from backend.util.enums import Instrument, JobType
 from backend.api.dto.api_response import ApiSuccessResponse
-from backend.api.dto.response_models import GetFramesResponse, SyncFramesResponse
+from backend.api.dto.response_models import JobQueuedResponse
 from backend.pipeline.pipeline import Pipeline
+from backend.jobs.background_job_service import BackgroundJobService
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/", response_model=ApiSuccessResponse[GetFramesResponse])
+@router.get("/", response_model=ApiSuccessResponse[JobQueuedResponse])
 def get_processed_frames(
     instrument: Instrument = Query(...),
     start: str = Query(..., description = "ISO UTC observation start time"),
     end: str = Query(..., description = "ISO UTC observation end time"),
-    pipeline: Pipeline = Depends(get_pipeline)
-) -> ApiSuccessResponse[GetFramesResponse]:
+    pipeline: Pipeline = Depends(get_pipeline),
+    background_job_service: BackgroundJobService = Depends(get_job_service)
+) -> ApiSuccessResponse[JobQueuedResponse]:
     """
-    Fetch processed frames for a given observation window and instrument
+    Trigger the retrieval of processed frames for a given observation window and instrument
     """
     logger.info(
         "Processed frames retrieval requested",
@@ -29,35 +30,47 @@ def get_processed_frames(
         }
     )
     try:
-        result = pipeline.get_processed_frames(instrument, start, end)
+        job = background_job_service.submit(
+            JobType.GET_PROCESSED_FRAMES,
+            pipeline.get_processed_frames,
+            instrument,
+            start,
+            end
+        )
 
-        logger.info("Processed frames retrieved")
+        logger.info("Processed frames retrieval job queued",
+                    extra={"job_id": job.id})
 
-        return ApiSuccessResponse[GetFramesResponse](
-            data=serialize_get_frames_response(result)
+        return ApiSuccessResponse[JobQueuedResponse](
+            data=JobQueuedResponse(
+                job_id=job.id,
+                status=job.status.value
+            )
         )
     
     except Exception:
-        logger.exception("Processed frames retrieval failed")
+        logger.exception("Processed frames retrieval failed to start")
         raise
 
-@router.post("/sync", response_model=ApiSuccessResponse[SyncFramesResponse])
+@router.post("/sync", response_model=ApiSuccessResponse[JobQueuedResponse])
 def sync_processed_frames(
     instrument: Instrument = Query(...),
     start: str = Query(..., description = "ISO UTC observation start time"),
     end: str = Query(..., description = "ISO UTC observation end time"),
-    pipeline: Pipeline = Depends(get_pipeline)
-) -> ApiSuccessResponse[SyncFramesResponse]:
+    pipeline: Pipeline = Depends(get_pipeline),
+    background_job_service: BackgroundJobService = Depends(get_job_service)
+) -> ApiSuccessResponse[JobQueuedResponse]:
     """
-    Sync and update processed frames based on instrument and observation time
+    Trigger the job for syncing and updating processed frames based on 
+    instrument and observation time
 
     - Triggers metadata sync
     - Downloads missing files
     - Processes eligible frames
-    - Returns details of the operation done
+    - Returns details of the sync operation including counts of metadata synced, files downloaded, frames marked ready and frames processed
     """
     logger.info(
-        "Processed frames sync requested",
+        "Processed frames sync job requested",
         extra={
             "instrument":instrument,
             "observation_start_utc":start,
@@ -65,18 +78,23 @@ def sync_processed_frames(
         }
     )
     try:
-        result = pipeline.sync_processed_frames(instrument, start, end)
+        job = background_job_service.submit(
+            JobType.SYNC_PROCESSED_FRAMES,
+            pipeline.sync_processed_frames,
+            instrument,
+            start,
+            end
+        )
 
-        logger.info("Processed frames synced")
+        logger.info("Processed frames sync job queued",
+                    extra={"job_id": job.id})
 
-        return ApiSuccessResponse[SyncFramesResponse](
-            data=SyncFramesResponse(
-                metadata_synced=result.metadata_synced,
-                downloaded=result.downloaded,
-                marked_ready=result.marked_ready,
-                processed=result.processed
+        return ApiSuccessResponse[JobQueuedResponse](
+            data=JobQueuedResponse(
+                job_id=job.id,
+                status=job.status.value
             )
         )
     except Exception:
-        logger.exception("Processed frames sync failed")
+        logger.exception("Processed frames sync failed to start")
         raise
