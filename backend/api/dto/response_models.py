@@ -1,4 +1,4 @@
-from backend.util.enums import Instrument
+from backend.util.enums import Instrument, JobType, JobStatus
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import Optional, Any
@@ -51,6 +51,11 @@ class JobQueuedResponse(BaseModel):
 
 class JobStatusResponse(BaseModel):
     job_id: str
-    status: str
-    result: Optional[Any]
-    error: Optional[str]
+    type: JobType
+    status: JobStatus
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    stopped_at: Optional[datetime] = None
+    progress: Optional[Any] = None
+    result: Optional[Any] = None
+    error: Optional[str] = None

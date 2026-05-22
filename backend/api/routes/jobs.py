@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException
-from backend.jobs.job_store import JobStore
-from backend.api.dependencies import get_job_store
+from backend.jobs.background_job_service import BackgroundJobService
+from backend.api.dependencies import get_job_service
 from backend.api.dto.api_response import ApiSuccessResponse
 from backend.api.dto.response_models import JobStatusResponse
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 @router.get("/{job_id}", response_model=ApiSuccessResponse[JobStatusResponse])
 def get_job(
     job_id: str,
-    job_store: JobStore = Depends(get_job_store)
+    background_job_service: BackgroundJobService = Depends(get_job_service)
 ) -> ApiSuccessResponse[JobStatusResponse]:
     """
     Retrieve background job execution details.
@@ -24,8 +24,8 @@ def get_job(
     :param job_id:
         Unique identifier of the background job.
 
-    :param job_store:
-        In-memory job store dependency.
+    :param background_job_service:
+        Background job service dependency.
 
     :raises HTTPException:
         404 if job does not exist.
@@ -41,7 +41,7 @@ def get_job(
 
     try:
 
-        job = job_store.get_job(job_id)
+        job = background_job_service.get_job(job_id)
 
         if job is None:
 
@@ -67,8 +67,12 @@ def get_job(
         return ApiSuccessResponse[JobStatusResponse](
             data=JobStatusResponse(
                 job_id=job.id,
-                type=job.type,
+                type=job.type.value,
                 status=job.status.value,
+                created_at=job.created_at,
+                started_at=job.started_at,
+                stopped_at=job.stopped_at,
+                progress=job.progress,
                 result=job.result,
                 error=job.error
             )
