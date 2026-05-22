@@ -1,8 +1,8 @@
 from typing import Optional, Any
 from backend.jobs.job import Job
-from backend.util.enums import JobStatus
+from backend.util.enums import JobStatus, JobType
 import uuid
-
+from datetime import datetime, UTC
 
 class JobStore:
     """
@@ -27,7 +27,7 @@ class JobStore:
 
         self._jobs: dict[str, Job] = {}
 
-    def create_job(self, type: str) -> Job:
+    def create_job(self, job_type: JobType) -> Job:
         """
         Create and register a new background job.
 
@@ -41,8 +41,9 @@ class JobStore:
 
         job = Job(
             id=str(uuid.uuid4()),
-            type=type,
-            status=JobStatus.QUEUED
+            type=job_type,
+            status=JobStatus.QUEUED,
+            created_at=datetime.now(UTC)
         )
 
         self._jobs[job.id] = job
@@ -66,6 +67,9 @@ class JobStore:
         self,
         job_id: str,
         status: JobStatus,
+        started_at: Optional[datetime] = None,
+        stopped_at: Optional[datetime] = None,
+        progress: Optional[Any] = None,
         result: Optional[Any] = None,
         error: Optional[str] = None
     ) -> Optional[Job]:
@@ -83,6 +87,12 @@ class JobStore:
         :param status:
             Updated lifecycle status.
 
+        :param started_at:
+            Optional timestamp when job execution started.
+        
+        :param stopped_at:
+            Optional timestamp when job execution stopped.
+
         :param result:
             Optional result payload produced by the job.
 
@@ -97,11 +107,18 @@ class JobStore:
 
         if job is None:
             return None
+        
+        if started_at is not None:
+            job.started_at = started_at
+        if stopped_at is not None:
+            job.stopped_at = stopped_at
+        if progress is not None:
+            job.progress = progress
 
         job.status = status
         job.result = result
         job.error = error
 
         return job
-
+    
 job_store = JobStore()

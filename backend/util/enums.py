@@ -73,8 +73,23 @@ class JobStatus(Enum):
     """
     QUEUED = "QUEUED"
     RUNNING = "RUNNING"
+    CANCELLING = "CANCELLING"
+    CANCELLED = "CANCELLED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+
+    def __str__(self):
+        return self.value
+
+class JobType(Enum):
+    """
+    Contains Enum values for type of 
+    background jobs.
+    """
+    SYNC_SLOTS = "SYNC_SLOTS"
+    SYNC_PROCESSED_FRAMES = "SYNC_PROCESSED_FRAMES"
+    GET_PROCESSED_FRAMES = "GET_PROCESSED_FRAMES"
+    START_SCHEDULER = "START_SCHEDULER"
 
     def __str__(self):
         return self.value
