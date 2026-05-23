@@ -19,6 +19,11 @@ class JobStore:
     - Job state is lost if application restarts.
     - Intended for lightweight single-instance usage.
     """
+    ACTIVE_STATUSES = {
+        JobStatus.QUEUED, 
+        JobStatus.RUNNING,
+        JobStatus.CANCELLING
+    }
 
     def __init__(self) -> None:
         """
@@ -120,5 +125,24 @@ class JobStore:
         job.error = error
 
         return job
+    
+    def get_active_job(self, job_type: JobType) -> Optional[Job]:
+        """
+        Retrieve active job of a given type.
+
+        Active jobs are those that are currently running (status = RUNNING).
+
+        :param job_type:
+            Type of the job to search for.
+
+        :return:
+            Active Job entity if found, otherwise None.
+        """
+
+        for job in self._jobs.values():
+            if job.type == job_type and job.status in self.ACTIVE_STATUSES:
+                return job
+        
+        return None
     
 job_store = JobStore()
