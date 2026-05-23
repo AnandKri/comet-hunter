@@ -1,180 +1,86 @@
-from datetime import datetime, UTC, timedelta
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.date import DateTrigger
-from typing import Optional
-from threading import Lock, Thread
+from datetime import timedelta
+from threading import Event
 from backend.util.enums import Instrument
 from backend.pipeline.pipeline import Pipeline
-from backend.pipeline.models import SchedulerStatusResult, SchedulerStartResult, SchedulerStopResult
+from backend.pipeline.models import SchedulerStartResult, SchedulerStopResult
 import logging
 
 logger = logging.getLogger(__name__)
 
 class Scheduler:
     """
-    Runs only the live ingestion pipeline on a dynamic interval.
+    Runs live ingestion pipeline continously
+    until explicitly stopped.
     """
+
+    DEFAULT_INTERVAL_MINUTES = timedelta(minutes=5)
 
     def __init__(self, pipeline: Pipeline):
         self.pipeline = pipeline
-        self.scheduler = BackgroundScheduler(timezone=UTC)
-        self.job_id = "run_live_pipeline_job"
-        self.next_run_at: Optional[datetime] = None
-        self.next_run_in: Optional[timedelta] = None
         self.running = False
-        self._lock = Lock()
-
-    def _job(self, instruments: list[Instrument]):
+        
+    def start(self, instruments: list[Instrument], cancel_event: Event) -> SchedulerStartResult:
         """
-        Executes one cycle of the live ingestion pipeline and schedules the next run.
-
-        Workflow:
-        - Triggers `pipeline.run_live_pipeline()` for the configured instrument/s
-        - Logs key metrics (metadata synced, files downloaded, next run interval)
-        - Determines next execution time based on returned `next_run` timedelta
-        - Falls back to a default interval if execution fails or `next_run` is None
-        - Schedules the next execution using a one-shot (DateTrigger) job
+        Starts the live ingestion pipeline for the given instruments.
 
         Notes:
-        - This method is self-rescheduling (no fixed interval loop)
-        - Only pipeline execution is wrapped in error handling; scheduling is not
+        - Blocking method
+        - Intended to run inside a background thread managed by BackgroundJobService
         
         """
-        logger.info("Scheduler job started", extra={"instruments": instruments})        
-        try:
-            if not instruments:
-                logger.warning("Scheduler job skipped: no instruments provided")
-                next_run = timedelta(minutes=5)
-            
-            for instrument in instruments:
-                logger.debug("Running pipeline", extra={"instrument":instrument})
-                result = self.pipeline.run_live_pipeline(instrument)
-                logger.info(
-                    "Pipeline run complete",
-                    extra={
-                        "instrument": instrument,
-                        "metadata_synced": result.metadata_synced,
-                        "downloaded": result.downloaded,
-                        "next_run": str(result.next_run) if result.next_run else None
-                    }
-                )
 
-                next_run = result.next_run
-            
-            if not next_run:
-                logger.warning("Scheduler fallback interval applied", extra={"fallback_minutes":5})
-                next_run = timedelta(minutes=5)
-        except Exception:
-            logger.exception("Scheduler job execution failed")
-            next_run = timedelta(minutes=5)
-
-        self.next_run_in = next_run
-        self.next_run_at = datetime.now(UTC) + next_run
+        self.running = True
 
         logger.info(
-            "Next scheduler run scheduled",
-            extra={
-                "next_run_at": str(self.next_run_at) if self.next_run_at else None,
-                "next_run_in": str(self.next_run_in) if self.next_run_in else None
-            }
+            "Scheduler started",
+            extra={"instruments": instruments}
         )
 
-        self.scheduler.add_job(
-            self._job,
-            trigger=DateTrigger(run_date=self.next_run_at),
-            id=self.job_id,
-            replace_existing=True,
-            kwargs={"instruments": instruments}
-        )
+        try:
+            while not cancel_event.is_set():
 
-    def start(self, instruments: list[Instrument]) -> SchedulerStartResult:
-        """
-        Starts the scheduler and triggers the first pipeline execution.
+                next_run = self.DEFAULT_INTERVAL_MINUTES
 
-        :param instruments: list of instruments for which job is to be ran
-        
-        Behavior:
-        - Initializes and starts the APScheduler background scheduler
-        - Immediately invokes `_job()` to kick off the pipeline without delay
+                try:
+                    if not instruments:
+                        logger.warning("No instruments provided for scheduler run")
+                        return SchedulerStartResult(
+                            started=False,
+                            running=self.running
+                        )
+                    
+                    for instrument in instruments:
+                        logger.info(
+                            "Running ingestion cycle for instrument",
+                            extra={"instrument": instrument}
+                        )
+                        result = self.pipeline.run_ingestion_cycle(instrument)
 
-        Notes:
-        - Subsequent executions are handled by `_job()` via self-rescheduling
-        - Should be called once during application startup
-        """
-        with self._lock:
-            if self.running:
-                logger.warning("Scheduler start ignored")
-                return SchedulerStartResult(
-                    started=False,
-                    running=self.running
-                )
-            logger.info("Starting scheduler")
-            try:
-                self.scheduler.start()
-                self.running = True
-
+                        logger.info(
+                            "Ingestion cycle result",
+                            extra={
+                                "instrument": instrument,
+                                "metadata_synced": result.metadata_synced,
+                                "downloaded": result.downloaded,
+                                "next_run": str(result.next_run) if result.next_run else None
+                            }
+                        )
+                        if result.next_run:
+                            next_run = result.next_run
+                except Exception:
+                    logger.exception("Scheduler cycle execution failed")
+                
                 logger.info(
-                    "Scheduler state transition: stopped -> running",
-                    extra={"instruments": instruments}
+                    "Scheduler waiting until next cycle run",
+                    extra={"next_run": str(next_run) if next_run else None}
                 )
-
-                Thread(
-                    target=self._job,
-                    kwargs={"instruments": instruments},
-                    daemon=True
-                ).start()
-
-                return SchedulerStartResult(
-                    started=True,
-                    running=self.running
-                )
-            except Exception:
-                logger.exception("Scheduler failed to start")
-                raise
-    
-    def get_status(self) -> SchedulerStatusResult:
-        """
-        Returns scheduler state.
-
-        :return: dataclass entity with running state
-        next run time and time remaining in next run
-        """
-        return SchedulerStatusResult(
-            self.running,
-            self.next_run_at,
-            self.next_run_in
-        )
-
-    def stop(self) -> SchedulerStopResult:
-        """
-        Stops the scheduler gracefully.
-
-        Behavior:
-        - Stops the APScheduler instance
-        - Prevents any further scheduled executions
-
-        Notes:
-        - Should be called during application stop/cleanup
-        - Ensures no background threads remain active
-        """
+                cancel_event.wait(next_run.total_seconds())
         
-        with self._lock:
-            if not self.running:
-                logger.warning("Scheduler stop ignored")
-                return SchedulerStopResult(
-                    stopped=False,
-                    running=self.running
-                )
-            try:
-                self.scheduler.shutdown(wait=False)
-                self.running = False
-                self.next_run_at = None
-                self.next_run_in = None
-                logger.info("Scheduler state transition: running -> stopped")
-                return SchedulerStopResult(
-                    stopped=True,
-                    running=self.running
-                )
-            except Exception:
-                logger.exception("Scheduler failed to stop")
-                raise
+        finally:
+            self.running = False
+            logger.info("Scheduler stopped")
+        
+        return SchedulerStartResult(
+            started=True,
+            running=self.running
+        )
