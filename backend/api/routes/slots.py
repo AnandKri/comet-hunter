@@ -28,13 +28,18 @@ def sync_slots(
     try:
         job = background_job_service.submit(JobType.SYNC_SLOTS, pipeline.sync_slots)
 
-        logger.info("Slots sync job queued", 
-                    extra={"job_id": job.id})
+        if job.existing:
+            logger.warning("Slots sync job already running",
+                           extra={"job_id": job.job.id})
+        else:
+            logger.info("Slots sync job started",
+                        extra={"job_id": job.job.id})
 
         return ApiSuccessResponse[JobQueuedResponse](
             data=JobQueuedResponse(
-                job_id=job.id,
-                status=job.status.value
+                job_id=job.job.id,
+                existing=job.existing,
+                status=job.job.status.value
             )
         )
     

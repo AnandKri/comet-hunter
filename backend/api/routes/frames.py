@@ -38,13 +38,18 @@ def get_processed_frames(
             end
         )
 
-        logger.info("Processed frames retrieval job queued",
-                    extra={"job_id": job.id})
+        if job.existing:
+            logger.warning("Processed frames retrieval job already running",
+                           extra={"job_id": job.job.id})
+        else:
+            logger.info("Processed frames retrieval job queued",
+                        extra={"job_id": job.job.id})
 
         return ApiSuccessResponse[JobQueuedResponse](
             data=JobQueuedResponse(
-                job_id=job.id,
-                status=job.status.value
+                job_id=job.job.id,
+                existing=job.existing,
+                status=job.job.status.value
             )
         )
     
@@ -86,13 +91,18 @@ def sync_processed_frames(
             end
         )
 
-        logger.info("Processed frames sync job queued",
-                    extra={"job_id": job.id})
+        if job.existing:
+            logger.warning("Processed frames sync job already running",
+                           extra={"job_id": job.job.id})
+        else:
+            logger.info("Processed frames sync job queued",
+                    extra={"job_id": job.job.id})
 
         return ApiSuccessResponse[JobQueuedResponse](
             data=JobQueuedResponse(
-                job_id=job.id,
-                status=job.status.value
+                job_id=job.job.id,
+                existing=job.existing,
+                status=job.job.status.value
             )
         )
     except Exception:
