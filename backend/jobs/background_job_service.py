@@ -3,6 +3,7 @@ from backend.jobs.runner import run_job
 from backend.jobs.job import Job
 from backend.jobs.job_store import JobStore
 from backend.util.enums import JobType
+from backend.jobs.job_submission import JobSubmissionResult
 
 class BackgroundJobService:
     """
@@ -15,7 +16,7 @@ class BackgroundJobService:
     def __init__(self, job_store: JobStore) -> None:
         self._job_store = job_store
     
-    def submit(self, job_type: JobType, fn, *args, **kwargs) -> Job:
+    def submit(self, job_type: JobType, fn, *args, **kwargs) -> JobSubmissionResult:
         """
         Create and execute a new background job.
 
@@ -35,13 +36,23 @@ class BackgroundJobService:
             Created Job entity with assigned identifier and initial state.
         """
 
-        
+        existing_job = self._job_store.get_active_job(job_type)
+
+        if existing_job:
+            return JobSubmissionResult(
+                job=existing_job,
+                existing=True
+            )
+
         job = self._job_store.create_job(job_type)
 
         thread = Thread(target=run_job, args=(job.id, fn, *args), kwargs=kwargs, daemon=True)
         thread.start()
 
-        return job
+        return JobSubmissionResult(
+            job=job,
+            existing=False
+        )
     
     def get_job(self, job_id: str) -> Job:
         """
