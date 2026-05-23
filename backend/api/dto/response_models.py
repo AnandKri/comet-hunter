@@ -47,6 +47,7 @@ class SlotResponse(BaseModel):
 
 class JobQueuedResponse(BaseModel):
     job_id: str
+    existing: bool
     status: str
 
 class JobStatusResponse(BaseModel):
