@@ -4,7 +4,7 @@ from datetime import timedelta, datetime
 from typing import Optional
 
 @dataclass
-class RunLivePipelineResult:
+class RunIngestionCycleResult:
     metadata_synced: int
     downloaded: int
     next_run: Optional[timedelta]

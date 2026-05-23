@@ -3,9 +3,11 @@ from backend.services.metadata_service import MetadataService
 from backend.services.download_file_service import DownloadFileService
 from backend.services.process_file_service import ProcessFileService
 from backend.util.enums import Instrument, FileStatus
-from backend.pipeline.models import RunLivePipelineResult, GetProcessedFramesResult, SyncProcessedFramesResult, SyncSlotsResult, SlotResult
+from backend.pipeline.models import RunIngestionCycleResult, GetProcessedFramesResult, SyncProcessedFramesResult, SyncSlotsResult, SlotResult
 from backend.util.funcs import parse_utc_datetime
+from backend.jobs.exceptions import CancelledError
 from datetime import datetime, UTC, timedelta
+from threading import Event
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,7 +28,7 @@ class Pipeline:
         self.download_service = download_service
         self.process_service = process_service
     
-    def sync_slots(self) -> SyncSlotsResult:
+    def sync_slots(self, cancel_event: Event) -> SyncSlotsResult:
         """
         Syncs slots from remote source
         """
@@ -94,19 +96,19 @@ class Pipeline:
             logger.exception("Get next active slot pipeline failed")
             raise
     
-    def run_live_pipeline(self, instrument: Instrument) -> RunLivePipelineResult:
+    def run_ingestion_cycle(self, instrument: Instrument) -> RunIngestionCycleResult:
         """
         Syncs metadata and download files as they get available
         based on active slot.
         Decide next run dynamically.
 
         :param instrument: Observation Instrument of our interest.
-        :return: RunLivePipelineResult model containing files metadata
+        :return: RunIngestionCycleResult model containing files metadata
         synced, number of files downloaded and in how much time to do
         the next run.
         """
         logger.info(
-            "Live pipeline execution started",
+            "Ingestion cycle execution started",
             extra={"instrument":instrument}
         )
         try:
@@ -121,7 +123,7 @@ class Pipeline:
                         "next_run": str(next_run) if next_run else None
                     }
                 )
-                return RunLivePipelineResult(
+                return RunIngestionCycleResult(
                     0,
                     0,
                     next_run
@@ -133,26 +135,27 @@ class Pipeline:
             downloaded = self.download_service.download_files_by_slots(instrument, [slot])
 
             logger.info(
-                "Live pipeline execution completed",
+                "Ingestion cycle execution completed",
                 extra={
                     "metadata_synced": metadata_synced,
                     "downloaded":downloaded
                 }
             )
 
-            return RunLivePipelineResult(
+            return RunIngestionCycleResult(
                 metadata_synced,
                 downloaded,
                 timedelta(minutes=5)
             )
         except Exception:
-            logger.exception("Live pipeline execution failed")
+            logger.exception("Ingestion cycle execution failed")
             raise
     
     def get_processed_frames(self,
                              instrument: Instrument,
                              observation_start_utc: str,
-                             observation_end_utc: str) -> GetProcessedFramesResult:
+                             observation_end_utc: str,
+                             cancel_event: Event) -> GetProcessedFramesResult:
         """
         returns processedfiles for a given observation time period and instrument.
 
@@ -196,7 +199,8 @@ class Pipeline:
     def sync_processed_frames(self,
                              instrument: Instrument,
                              observation_start_utc: str,
-                             observation_end_utc: str) -> SyncProcessedFramesResult:
+                             observation_end_utc: str,
+                             cancel_event: Event) -> SyncProcessedFramesResult:
         """
         User driven observation based pipeline.
         returns detials of operation done for syncing processed frames for a given 
@@ -205,6 +209,7 @@ class Pipeline:
         :param instrument: instrument used for observation
         :param observation_start_utc: observation start time
         :param observation_end_utc: observation end time
+        :param cancel_event: to track cancellation trigger for terminating the job
         :return: dictionary containing key-value pairs for metadata synced, files downloaded, 
         marked ready and processed. 
         """
@@ -226,11 +231,21 @@ class Pipeline:
 
             metadata_synced = self.metadata_service.sync_metadata(instrument,padded_start,padded_end)
 
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+
             self.download_service.recover_stale_files(now_utc, instrument)
             downloaded = self.download_service.download_files_by_observation(instrument,observation_start_dt,observation_end_dt)
 
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+
             self.process_service.recover_stale_files(now_utc, instrument)
             marked_ready = self.process_service.mark_ready_files_for_processing(instrument, observation_start_dt, observation_end_dt)
+            
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+
             processed = self.process_service.process_pending_files(instrument, observation_start_dt, observation_end_dt)
             logger.info(
                 "Processed frames sync pipeline completed",
