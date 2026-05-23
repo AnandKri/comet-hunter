@@ -9,7 +9,7 @@ from backend.services.process_file_service import ProcessFileService
 from backend.services.slot_service import SlotService
 from backend.pipeline.pipeline import Pipeline
 from backend.pipeline.scheduler import Scheduler
-from backend.jobs.job_store import job_store
+from backend.jobs.job_store import job_store, JobStore
 from backend.jobs.background_job_service import BackgroundJobService
 
 background_job_service = BackgroundJobService(job_store)
@@ -53,6 +53,12 @@ def get_scheduler() -> Scheduler:
     Returns shared scheduler instance for triggering background jobs.
     """
     return scheduler
+
+def get_job_store() -> JobStore:
+    """
+    Returns a shared job_store instance.
+    """
+    return job_store
 
 def get_job_service() -> BackgroundJobService:
     """
