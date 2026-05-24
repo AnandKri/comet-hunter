@@ -2,24 +2,26 @@ from fastapi import APIRouter, Query, Depends
 from backend.api.dependencies import get_pipeline, get_job_service
 from backend.util.enums import Instrument, JobType
 from backend.api.dto.api_response import ApiSuccessResponse
-from backend.api.dto.response_models import JobQueuedResponse
+from backend.api.dto.response_models import JobQueuedResponse, GetFramesResponse
 from backend.pipeline.pipeline import Pipeline
 from backend.jobs.background_job_service import BackgroundJobService
+from backend.api.dto.serializers import serialize_get_frames_response
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/", response_model=ApiSuccessResponse[JobQueuedResponse])
+@router.get("/", response_model=ApiSuccessResponse[GetFramesResponse])
 def get_processed_frames(
     instrument: Instrument = Query(...),
     start: str = Query(..., description = "ISO UTC observation start time"),
     end: str = Query(..., description = "ISO UTC observation end time"),
-    pipeline: Pipeline = Depends(get_pipeline),
-    background_job_service: BackgroundJobService = Depends(get_job_service)
-) -> ApiSuccessResponse[JobQueuedResponse]:
+    limit: int = Query(15, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    pipeline: Pipeline = Depends(get_pipeline)
+) -> ApiSuccessResponse[GetFramesResponse]:
     """
-    Trigger the retrieval of processed frames for a given observation window and instrument
+    Retrieve of processed frames for a given observation window and instrument
     """
     logger.info(
         "Processed frames retrieval requested",
@@ -30,31 +32,21 @@ def get_processed_frames(
         }
     )
     try:
-        job = background_job_service.submit(
-            JobType.GET_PROCESSED_FRAMES,
-            pipeline.get_processed_frames,
+
+        result = pipeline.get_processed_frames(
             instrument,
             start,
-            end
+            end,
+            limit,
+            offset
         )
 
-        if job.existing:
-            logger.warning("Processed frames retrieval job already running",
-                           extra={"job_id": job.job.id})
-        else:
-            logger.info("Processed frames retrieval job queued",
-                        extra={"job_id": job.job.id})
-
-        return ApiSuccessResponse[JobQueuedResponse](
-            data=JobQueuedResponse(
-                job_id=job.job.id,
-                existing=job.existing,
-                status=job.job.status.value
-            )
+        return ApiSuccessResponse[GetFramesResponse](
+            data=serialize_get_frames_response(result)
         )
-    
+        
     except Exception:
-        logger.exception("Processed frames retrieval failed to start")
+        logger.exception("Processed frames retrieval failed")
         raise
 
 @router.post("/sync", response_model=ApiSuccessResponse[JobQueuedResponse])

@@ -12,7 +12,7 @@ def serialize_processed_file(
     return ProcessedFileResponse(
         processed_file_name=file.processed_file_name,
         instrument=file.instrument,
-        processed_file_path=str(file.processed_file_path),
+        processed_file_url=f"/media/{str(file.processed_file_name)}",
         datetime_of_observation=file.datetime_of_observation
     )
 
@@ -21,5 +21,11 @@ def serialize_get_frames_response(result: GetProcessedFramesResult) -> GetFrames
     Converts GetProcessedFramesResult pipeline result domain model to GetFramesResponse DTO
     """
     return GetFramesResponse(
-        files=[serialize_processed_file(file) for file in result.processed_files]
+        files=[
+            serialize_processed_file(file) 
+            for file in result.processed_files
+        ],
+        total=result.total,
+        limit=result.limit,
+        offset=result.offset
     )

@@ -168,13 +168,17 @@ class Pipeline:
     def get_processed_frames(self,
                              instrument: Instrument,
                              observation_start_utc: str,
-                             observation_end_utc: str) -> GetProcessedFramesResult:
+                             observation_end_utc: str,
+                             limit: int,
+                             offset: int) -> GetProcessedFramesResult:
         """
         returns processedfiles for a given observation time period and instrument.
 
         :param instrument: instrument used for observation
         :param observation_start_utc: observation start time
         :param observation_end_utc: observation end time
+        :param limit:
+        :param offset:
         :return: domain entity with `processed_files` containing list of processed
         file domain entities. 
         """
@@ -190,11 +194,13 @@ class Pipeline:
             observation_start_dt = parse_utc_datetime(observation_start_utc)
             observation_end_dt = parse_utc_datetime(observation_end_utc)
 
-            processed_files = self.process_service.get_files_by_observation_and_status(
+            processed_files, total = self.process_service.get_files_by_observation_and_status(
                 instrument, 
                 FileStatus.PROCESSED, 
                 observation_start_dt, 
-                observation_end_dt
+                observation_end_dt,
+                limit,
+                offset
             )
             logger.info(
                 "Processed frames retrieval pipeline completed",
@@ -203,8 +209,12 @@ class Pipeline:
                 }
             )
             return GetProcessedFramesResult(
-                processed_files=processed_files
+                processed_files=processed_files,
+                total=total,
+                limit=limit,
+                offset=offset
             )
+        
         except Exception:
             logger.exception("Processed frames retrieval pipeline failed")
             raise

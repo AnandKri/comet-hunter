@@ -430,7 +430,10 @@ class ProcessedFileRepository:
                                             instrument: Instrument, 
                                             status: FileStatus,
                                             observation_start_utc: datetime,
-                                            observation_end_utc: datetime) -> list[ProcessedFile]:
+                                            observation_end_utc: datetime,
+                                            limit: int,
+                                            offset: int
+                                            ) -> tuple[list[ProcessedFile], int]:
         
         """
         returns files for a given observation time preiod and status
@@ -439,6 +442,8 @@ class ProcessedFileRepository:
         :param status: file status
         :param observation_start_utc: starting utc timestamp of observation
         :param observation_end_utc: ending utc timestamp of observation
+        :param limit: max number of rows to fetch
+        :param offset: number of rows to skip
         :return: list of processed file domain entities 
         """
 
@@ -447,8 +452,34 @@ class ProcessedFileRepository:
 
         if not isinstance(status, FileStatus):
             raise ValueError("status must be FileStatus enum")
+        
+        count_spec = QuerySpec(
+            sql = f"""
+                    SELECT COUNT(*) as total
+                    FROM {self.table_name}
+                    WHERE datetime_of_observation >= ?
+                    AND datatime_of_observation <= ?
+                    AND instrument = ?
+                    AND status = ?
+                """,
+                operation=OperationType.READ,
+                params=(
+                    observation_start_utc.isoformat(),
+                    observation_end_utc.isoformat(),
+                    instrument.value,
+                    status.value
+                ),
+                fetch=FetchType.ONE
+        )
 
-        spec = QuerySpec(
+        count_result = self._executor.execute(count_spec)
+
+        total = 0
+        
+        if count_result.data:
+            total = count_result.data["total"]
+
+        data_spec = QuerySpec(
             sql = f"""
                     SELECT *
                     FROM {self.table_name}
@@ -457,18 +488,26 @@ class ProcessedFileRepository:
                     AND instrument = ?
                     AND status = ?
                     ORDER BY datetime_of_observation ASC
+                    LIMIT ?
+                    OFFSET ?
                 """,
             operation=OperationType.READ,
             params=(observation_start_utc.isoformat(),
                     observation_end_utc.isoformat(),
                     instrument.value,
-                    status.value),
+                    status.value,
+                    limit,
+                    offset
+                    ),
             fetch=FetchType.ALL
         )
 
-        result = self._executor.execute(spec)
+        result = self._executor.execute(data_spec)
 
-        if not result.data:
-            return []
+        files = []
+        
+        if result.data:
+            for r in result.data:
+                files.append(ProcessedFile.from_row(r))
 
-        return [ProcessedFile.from_row(r) for r in result.data]
+        return files, total

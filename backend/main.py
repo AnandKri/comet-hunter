@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from backend.api.dto.api_response import ApiErrorResponse, ApiErrorDetail
 from contextlib import asynccontextmanager
 from backend.database.infrastructure.bootstrap import bootstrap_database
@@ -7,6 +8,10 @@ from backend.core.logging_config import setup_logging
 from backend.api.dependencies import get_scheduler
 from backend.api.routes import frames, slots, health, jobs, scheduler as scheduler_routes
 from backend.api.middleware import LoggingMiddleware
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROCESSED_DIR = BASE_DIR / "data" / "processed"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -52,6 +57,12 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     )
 
 app.add_middleware(LoggingMiddleware)
+
+app.mount(
+    "/media",
+    StaticFiles(directory=PROCESSED_DIR),
+    name="media"
+)
 
 app.include_router(health.router, prefix="/health", tags=["Health"])
 app.include_router(slots.router, prefix="/slots", tags=["Slots"])

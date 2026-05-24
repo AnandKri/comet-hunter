@@ -12,6 +12,9 @@ class RunIngestionCycleResult:
 @dataclass
 class GetProcessedFramesResult:
     processed_files: list[ProcessedFile]
+    total: int
+    limit: int
+    offset: int
 
 @dataclass
 class SyncProcessedFramesResult:

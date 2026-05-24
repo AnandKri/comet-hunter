@@ -6,11 +6,14 @@ from typing import Optional, Any
 class ProcessedFileResponse(BaseModel):
     processed_file_name: str
     instrument: Instrument
-    processed_file_path: str
+    processed_file_url: str
     datetime_of_observation: datetime 
 
 class GetFramesResponse(BaseModel):
     files: list[ProcessedFileResponse]
+    total: int
+    limit: int
+    offset: int
 
 class SyncFramesResponse(BaseModel):
     metadata_synced: int

@@ -290,7 +290,16 @@ class ProcessFileService:
         
         return list({f.raw_file_name: f for f in (ready + retryable)}.values())
     
-    def get_files_by_observation_and_status(self, instrument: Instrument, status: FileStatus, observation_start_utc: datetime, observation_end_utc: datetime) -> list[ProcessedFile]:
+    def get_files_by_observation_and_status(
+            self,
+            instrument: Instrument, 
+            status: FileStatus, 
+            observation_start_utc: datetime, 
+            observation_end_utc: datetime,
+            limit: int,
+            offset: int
+    ) -> tuple[list[ProcessedFile], int]:
+        
         """
         Returns list of file domain entities of a particular state, for a given observation time period and instrument
 
@@ -306,7 +315,14 @@ class ProcessFileService:
             raise ValueError("status should be a FileStatus enum")
         validate_time_window(observation_start_utc, observation_end_utc)
 
-        return self._processed_repository.get_files_by_observation_and_status(instrument, status, observation_start_utc, observation_end_utc)
+        return self._processed_repository.get_files_by_observation_and_status(
+            instrument, 
+            status, 
+            observation_start_utc, 
+            observation_end_utc,
+            limit,
+            offset
+        )
     
     def _parallel_process(self, files: List[ProcessedFile], cancel_event: Event) -> int:
         """
