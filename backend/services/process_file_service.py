@@ -13,6 +13,8 @@ from scipy.signal import medfilt2d
 from sunpy.map import Map
 import matplotlib.pyplot as plt
 import logging
+from threading import Event
+from backend.jobs.exceptions import CancelledError
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +123,12 @@ class ProcessFileService:
             observation_end_utc=observation_end_utc
         )
 
-    def mark_ready_files_for_processing(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> int:
+    def mark_ready_files_for_processing(
+            self, 
+            instrument: Instrument, 
+            observation_start_utc: datetime, 
+            observation_end_utc: datetime,
+            cancel_event: Event) -> int:
         """
         Goes through all the files for a given observation time period and instrument, 
         updates relevant files' status as `READY`.
@@ -149,6 +156,8 @@ class ProcessFileService:
             if instrument == Instrument.C2:
                 files = self._processed_repository.get_files_by_observation(instrument, observation_start_utc, observation_end_utc)
                 for file in files:
+                    if cancel_event and cancel_event.is_set():
+                        raise CancelledError()
                     if file.status == FileStatus.DOWNLOADED:
                         try:
                             updated_file = file.transition_to(FileStatus.READY)
@@ -161,6 +170,8 @@ class ProcessFileService:
                 files = self._processed_repository.get_files_by_observation(instrument, fetch_start_time, observation_end_utc)
                 prev = None
                 for file in files:
+                    if cancel_event and cancel_event.is_set():
+                        raise CancelledError()
                     file_observation_datetime = file.datetime_of_observation
                     if (file_observation_datetime >= observation_start_utc) and (file.status == FileStatus.DOWNLOADED):
                         if prev:
@@ -185,11 +196,20 @@ class ProcessFileService:
                 extra={"marked_ready": updated_count}
             )
             return updated_count
+        except CancelledError:
+            logger.info("File readiness evaluation cancelled")
+            raise
+
         except Exception:
             logger.exception("File readiness evaluation failed")
             raise
 
-    def process_pending_files(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> int:
+    def process_pending_files(
+            self, 
+            instrument: Instrument, 
+            observation_start_utc: datetime, 
+            observation_end_utc: datetime,
+            cancel_event: Event) -> int:
         """
         Entry workflow for processing eligible files.
         
@@ -217,8 +237,9 @@ class ProcessFileService:
             if not files:
                 logger.info("No eligible files found for processing")
                 return 0
-            
-            processed = self._parallel_process(files)
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+            processed = self._parallel_process(files, cancel_event)
 
             logger.info(
                 "File processing execution completed",
@@ -227,6 +248,9 @@ class ProcessFileService:
             )
             
             return processed
+        except CancelledError:
+            logger.info("File processing execution cancelled")
+            raise
         except Exception:
             logger.exception("File processing execution failed")
             raise
@@ -284,7 +308,7 @@ class ProcessFileService:
 
         return self._processed_repository.get_files_by_observation_and_status(instrument, status, observation_start_utc, observation_end_utc)
     
-    def _parallel_process(self, files: List[ProcessedFile]) -> int:
+    def _parallel_process(self, files: List[ProcessedFile], cancel_event: Event) -> int:
         """
         Process files concurrently
 
@@ -295,12 +319,16 @@ class ProcessFileService:
         success = 0
 
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
-            futures = [
-                executor.submit(self._process_single, file)
-                for file in files
-            ]
+            futures = []
+
+            for file in files:
+                if cancel_event and cancel_event.is_set():
+                    raise CancelledError()
+                futures.append(executor.submit(self._process_single, file))
 
             for future in as_completed(futures):
+                if cancel_event and cancel_event.is_set():
+                    raise CancelledError()
                 if future.result():
                     success += 1
         

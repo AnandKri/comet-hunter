@@ -4,9 +4,11 @@ from backend.database.domain.downlink_slot import DownlinkSlot
 from backend.util.constants import Url
 from backend.util.enums import SlotStatus
 from backend.util.funcs import validate_time_window
+from backend.jobs.exceptions import CancelledError
 import requests
 import re
-from datetime import datetime, timedelta, UTC 
+from datetime import datetime, timedelta, UTC
+from threading import Event
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,16 +25,21 @@ class SlotService:
     def __init__(self, slot_repository: DownlinkSlotRepository):
         self._slot_repository = slot_repository
     
-    def sync_slots(self) -> int:
+    def sync_slots(self, cancel_event: Event) -> int:
         """
         Fetch slot data from remote source and update 
         database.
+        :param cancel_event: event to track cancel request from user.
 
         :return: number of new slots inserted
         """
         logger.info("Slot sync service execution started")
         try:
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
             raw_data = self._fetch_slot_data()
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
             slots = self._parse_slots(raw_data)
             if not slots:
                 raise RuntimeError("No slots parsed - parser likely broken")
@@ -40,6 +47,8 @@ class SlotService:
             inserted = 0
 
             for slot in slots:
+                if cancel_event and cancel_event.is_set():
+                    raise CancelledError()
                 if not self._slot_repository.exists(identity=slot.identity()):
                     if self._slot_repository.create_slot(slot):
                         inserted += 1
@@ -52,6 +61,10 @@ class SlotService:
             )
             
             return inserted
+        except CancelledError:
+            logger.info("Slot sync service execution cancelled")
+            raise
+
         except Exception:
             logger.exception("Slot sync service execution failed")
             raise

@@ -34,7 +34,7 @@ class Pipeline:
         """
         logger.info("Slot sync pipeline started")
         try:
-            slots_synced = self.slot_service.sync_slots()
+            slots_synced = self.slot_service.sync_slots(cancel_event)
             logger.info(
                 "Slot sync pipeline completed",
                 extra={"slots_synced": slots_synced}
@@ -42,6 +42,11 @@ class Pipeline:
             return SyncSlotsResult(
                 slots_synced
             )
+        
+        except CancelledError:
+            logger.info("Slot sync pipeline cancelled")
+            raise
+
         except Exception:
             logger.exception("Slot sync pipeline failed")
             raise
@@ -96,7 +101,7 @@ class Pipeline:
             logger.exception("Get next active slot pipeline failed")
             raise
     
-    def run_ingestion_cycle(self, instrument: Instrument) -> RunIngestionCycleResult:
+    def run_ingestion_cycle(self, instrument: Instrument, cancel_event: Event) -> RunIngestionCycleResult:
         """
         Syncs metadata and download files as they get available
         based on active slot.
@@ -128,11 +133,17 @@ class Pipeline:
                     0,
                     next_run
                 )
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
             
-            metadata_synced = self.metadata_service.sync_metadata_by_slots(instrument, [slot])
+            metadata_synced = self.metadata_service.sync_metadata_by_slots(instrument, [slot], cancel_event)
 
             self.download_service.recover_stale_files(now, instrument)
-            downloaded = self.download_service.download_files_by_slots(instrument, [slot])
+
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+
+            downloaded = self.download_service.download_files_by_slots(instrument, [slot], cancel_event)
 
             logger.info(
                 "Ingestion cycle execution completed",
@@ -147,6 +158,9 @@ class Pipeline:
                 downloaded,
                 timedelta(minutes=5)
             )
+        except CancelledError:
+            logger.info("Ingestion cycle execution cancelled")
+            raise
         except Exception:
             logger.exception("Ingestion cycle execution failed")
             raise
@@ -154,8 +168,7 @@ class Pipeline:
     def get_processed_frames(self,
                              instrument: Instrument,
                              observation_start_utc: str,
-                             observation_end_utc: str,
-                             cancel_event: Event) -> GetProcessedFramesResult:
+                             observation_end_utc: str) -> GetProcessedFramesResult:
         """
         returns processedfiles for a given observation time period and instrument.
 
@@ -229,24 +242,29 @@ class Pipeline:
             padded_start = observation_start_dt - timedelta(hours=12)
             padded_end = min(observation_end_dt + timedelta(hours=12), now_utc)
 
-            metadata_synced = self.metadata_service.sync_metadata(instrument,padded_start,padded_end)
+            metadata_synced = self.metadata_service.sync_metadata(
+                instrument=instrument,
+                cancel_event=cancel_event,
+                downlink_start_utc=padded_start,
+                downlink_end_utc=padded_end,
+            )
 
             if cancel_event and cancel_event.is_set():
                 raise CancelledError()
 
             self.download_service.recover_stale_files(now_utc, instrument)
-            downloaded = self.download_service.download_files_by_observation(instrument,observation_start_dt,observation_end_dt)
+            downloaded = self.download_service.download_files_by_observation(instrument,observation_start_dt,observation_end_dt, cancel_event)
 
             if cancel_event and cancel_event.is_set():
                 raise CancelledError()
 
             self.process_service.recover_stale_files(now_utc, instrument)
-            marked_ready = self.process_service.mark_ready_files_for_processing(instrument, observation_start_dt, observation_end_dt)
+            marked_ready = self.process_service.mark_ready_files_for_processing(instrument, observation_start_dt, observation_end_dt, cancel_event)
             
             if cancel_event and cancel_event.is_set():
                 raise CancelledError()
 
-            processed = self.process_service.process_pending_files(instrument, observation_start_dt, observation_end_dt)
+            processed = self.process_service.process_pending_files(instrument, observation_start_dt, observation_end_dt, cancel_event)
             logger.info(
                 "Processed frames sync pipeline completed",
                 extra={
@@ -263,6 +281,11 @@ class Pipeline:
                 marked_ready,
                 processed
             )
+        
+        except CancelledError:
+            logger.info("Processed frame sync pipeline cancelled")
+            raise
+
         except Exception:
             logger.exception("Processed frames sync pipeline failed")
             raise

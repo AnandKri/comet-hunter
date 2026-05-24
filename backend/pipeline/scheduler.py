@@ -2,7 +2,8 @@ from datetime import timedelta
 from threading import Event
 from backend.util.enums import Instrument
 from backend.pipeline.pipeline import Pipeline
-from backend.pipeline.models import SchedulerStartResult, SchedulerStopResult
+from backend.pipeline.models import SchedulerStartResult
+from backend.jobs.exceptions import CancelledError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ class Scheduler:
                             "Running ingestion cycle for instrument",
                             extra={"instrument": instrument}
                         )
-                        result = self.pipeline.run_ingestion_cycle(instrument)
+                        result = self.pipeline.run_ingestion_cycle(instrument, cancel_event)
 
                         logger.info(
                             "Ingestion cycle result",
@@ -67,8 +68,13 @@ class Scheduler:
                         )
                         if result.next_run:
                             next_run = result.next_run
+                
+                except CancelledError:
+                    logger.info("Scheduler cycle execution cancelled")
+                    raise
                 except Exception:
                     logger.exception("Scheduler cycle execution failed")
+                    raise
                 
                 logger.info(
                     "Scheduler waiting until next cycle run",

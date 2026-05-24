@@ -13,6 +13,8 @@ from backend.util.constants import Url
 from backend.util.funcs import validate_time_window
 from backend.services.metadata_service import MetadataService
 import logging
+from backend.jobs.exceptions import CancelledError
+from threading import Event
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +88,7 @@ class DownloadFileService:
             logger.exception("Download stale file recovery failed")
             raise
 
-    def download_files_by_slots(self, instrument: Instrument, slots: List[DownlinkSlot]) -> int:
+    def download_files_by_slots(self, instrument: Instrument, slots: List[DownlinkSlot], cancel_event: Event) -> int:
         """
         Downloads files corresponding to slots and given instrument.
 
@@ -112,14 +114,20 @@ class DownloadFileService:
             downlink_start_utc = min(slot.bot_utc for slot in slots)
             downlink_end_utc = max(slot.eot_utc for slot in slots)
 
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+
             metadata_files = self._metadata_service.get_metadata_by_downlink(instrument, downlink_start_utc, downlink_end_utc)
+
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
 
             files = self._get_files_to_download(metadata_files)
             if not files:
                 logger.info("No eligible files found for download")
                 return 0
             
-            downloaded = self._parallel_download(files)
+            downloaded = self._parallel_download(files, cancel_event)
             
             logger.info(
                 "Slot-based file download execution completed",
@@ -130,6 +138,10 @@ class DownloadFileService:
             )
 
             return downloaded
+        
+        except CancelledError:
+            logger.info("Slot-based file download execution cancelled")
+            raise
         
         except Exception:
             logger.exception("Slot-based file download execution failed")
@@ -157,7 +169,12 @@ class DownloadFileService:
         
         return self._parallel_download(files)
     
-    def download_files_by_observation(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> int:
+    def download_files_by_observation(
+            self, 
+            instrument: Instrument, 
+            observation_start_utc: datetime, 
+            observation_end_utc: datetime,
+            cancel_event: Event) -> int:
         """
         download files within an observation time period and instrument.
 
@@ -182,18 +199,29 @@ class DownloadFileService:
 
             metadata_files = self._metadata_service.get_metadata_by_observation(instrument, observation_start_utc, observation_end_utc)
 
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+
             files = self._get_files_to_download(metadata_files)
+
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+
             if not files:
                 logger.info("No eligible files found for download")
                 return 0
             
-            downloaded = self._parallel_download(files)
+            downloaded = self._parallel_download(files, cancel_event)
             
             logger.info("Observation-based file download execution completed",
                         extra={"candidate_files": len(files),
                                "downloaded_files": downloaded})
             
             return downloaded
+        
+        except CancelledError:
+            logger.info("Observation-based file download execution cancelled")
+            raise
         
         except Exception:
             logger.exception("Observation-based file download execution failed")
@@ -266,7 +294,7 @@ class DownloadFileService:
         
         return files
     
-    def _parallel_download(self, files: List[ProcessedFile]) -> int:
+    def _parallel_download(self, files: List[ProcessedFile], cancel_event: Event) -> int:
         """
         Download files concurrently
 
@@ -277,12 +305,19 @@ class DownloadFileService:
         success = 0
 
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
-            futures = [
-                executor.submit(self._download_single, file)
-                for file in files
-            ]
+            futures = []
+
+            for file in files:
+                if cancel_event and cancel_event.is_set():
+                    raise CancelledError()
+                
+                futures.append(executor.submit(self._download_single, file))
 
             for future in as_completed(futures):
+
+                if cancel_event and cancel_event.is_set():
+                    raise CancelledError()
+
                 if future.result():
                     success += 1
         

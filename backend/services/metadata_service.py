@@ -9,6 +9,8 @@ from backend.util.enums import Instrument
 from backend.util.funcs import validate_time_window
 from datetime import datetime, timedelta, UTC, date
 from zoneinfo import ZoneInfo
+from backend.jobs.exceptions import CancelledError
+from threading import Event
 import re
 import logging
 
@@ -26,7 +28,12 @@ class MetadataService:
     def __init__(self, metadata_repository: FileMetadataRepository):
         self._metadata_repository = metadata_repository
     
-    def sync_metadata(self, instrument: Instrument, downlink_start_utc: Optional[datetime] = None, downlink_end_utc: Optional[datetime] = None) -> int:
+    def sync_metadata(
+            self, 
+            instrument: Instrument,
+            cancel_event: Event, 
+            downlink_start_utc: Optional[datetime] = None, 
+            downlink_end_utc: Optional[datetime] = None) -> int:
         """
         Fetch metadata from remote source and update database.
 
@@ -64,13 +71,23 @@ class MetadataService:
             all_metadata = []
 
             for raw_text, last_modified_map in self._fetch_metadata(instrument, downlink_start_utc, downlink_end_utc):
+                
+                if cancel_event and cancel_event.is_set():
+                    raise CancelledError()
+
                 parsed = self._parse_metadata(raw_text, last_modified_map)
                 filtered = [f for f in parsed
                             if downlink_start_utc <= f.last_modified_utc <= downlink_end_utc
                             ]
                 all_metadata.extend(filtered)
             
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+            
             new_files = self._discover_new_files(all_metadata)
+
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
 
             inserted  = self._metadata_repository.bulk_create_metadata(new_files)
 
@@ -84,6 +101,10 @@ class MetadataService:
             )
 
             return inserted
+        
+        except CancelledError:
+            logger.info("Metadata sync service execution cancelled")
+            raise
         
         except Exception:
             logger.exception("Metadata sync service execution failed")
@@ -321,7 +342,11 @@ class MetadataService:
         
         return self.get_metadata_by_slots(instrument, slot)
     
-    def sync_metadata_by_slots(self, instrument: Instrument, slots: list[DownlinkSlot]) -> int:
+    def sync_metadata_by_slots(
+            self, 
+            instrument: Instrument, 
+            slots: list[DownlinkSlot],
+            cancel_event: Event) -> int:
         """
         Sync metadata for given slots. takes start date of earliest slot and end date of latest slot. 
 
@@ -338,7 +363,7 @@ class MetadataService:
         downlink_start_utc = min(slot.bot_utc for slot in slots)
         downlink_end_utc = max(slot.eot_utc for slot in slots)
 
-        return self.sync_metadata(instrument, downlink_start_utc, downlink_end_utc)
+        return self.sync_metadata(instrument, cancel_event, downlink_start_utc, downlink_end_utc)
     
     def get_metadata_by_observation(self, instrument: Instrument, observation_start_utc: datetime, observation_end_utc: datetime) -> list[FileMetadata]:
         """
