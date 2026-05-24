@@ -1,35 +1,28 @@
 # Comet Hunter
 
-Comet Hunter is a deterministic ingestion and processing pipeline for LASCO image streams, designed to enable reliable visualization of faint moving sungrazing comets.
+Comet Hunter is a tool which helps in discovering comets.
 
-The project focuses on correctness, restartability, and explicit state modeling.
+## About The Project
 
-**Target outcome:**  
-A structured backend system capable of ingesting, processing, and serving time-ordered frames for scientific inspection.
+NASA's [Sungrazer Project](https://www.esa.int/Science_Exploration/Space_Science/Sungrazer_comets) enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over five thousand comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — C2 and C3. Images from these telescopes are primarily used for reporting new comets.
 
----
+For comet discovery, users rely on commercially available tools or software to streamline parts of the workflow or assist in identifying potential comets. However, there is no single platform that streamlines the end-to-end comet hunting process. **Comet Hunter is created with the aim of helping bridge this gap**.
 
-### Why This Exists
+### Why This Exists?
 
-Present challenges:
-- Images are required to be processed before they become usable
+**Present challenges**:
+- RAW images are required to be processed before they become usable
 - Sungrazer comets are faint and often indistinguishable in single frame
-- Chronological playback significantly improves detectability
+- Chronological playback of images significantly improves detectability
 - The citizen scientist community is large and highly active
 - Most comets are reported within minutes of data availability.
 - **Time is critical.**
 
-The problem is not merely detection - it is **rapid** detection.
+The problem is not merely detection - it is **rapid** detection. 
 
-This requires automation with:
-- Restartable ingestion
-- Idempotent file acquisition
-- State-consistent processing
-- Time-indexed retrieval
+This requires a **robust automation** of the end-to-end process right from getting the RAW images to the chronological playback of processed images. And Comet Hunter does exactly this.
 
-This project approaches the problem as a reliability-focused systems design exercise.
-
----
+## Getting Started
 
 ### Running Locally
 
@@ -42,17 +35,9 @@ This project approaches the problem as a reliability-focused systems design exer
 
 (Commands and example script coming soon...)
 
----
-
 ### Documentation
 
-Complete project documentation can be found at [Comet Hunter](https://anandkri.github.io/comet-hunter/). Some of the useful documentations are listed below:  
-- [Architecture](docs/ARCHITECTURE.md)
-- [Database Schema](docs/DATABASE_SCHEMA.md)
-- [Processing Pipeline](docs/PROCESSING_PIPELINE.md)
-- [Roadmap](docs/ROADMAP.md)
-
----
+Complete project documentation can be found at [Comet Hunter](https://anandkri.github.io/comet-hunter/).
 
 ### System Flow
 
@@ -64,8 +49,6 @@ Complete project documentation can be found at [Comet Hunter](https://anandkri.g
 7. Visualization Layer
 
 Each stage is independently restartable and governed by explicit state transitions.
-
----
 
 ### Current Scope
 
@@ -83,23 +66,21 @@ Implemented:
 - Logging configuration
 
 In progress:
-- Interactive chronological UI
-
----
+- Background Job cancellation
+- Establishing Server-Sent Events
+- Interactive UI
 
 ### Architectural Characteristics
 
-- Domain-first modeling
-- Idempotent pipeline semantics (using file names as primary key, retry counters, state transitions)
-- Explicit state transitions (no implicit flags)
-- Per-query transactional boundaries
-- Strict separation of DB writes from I/O
-- Deterministic initialization
-- Indexed time-series access
-- Failure Handling (retry limits, failure states)
-
----
-
-### Success Criteria
-
-A fully restartable ingestion-to-visualization pipeline capable of surfacing at least one previously undetected comet.
+- Domain-driven architecture
+- Idempotent ingestion and processing pipeline
+- Explicit lifecycle state machines
+- Transaction-scoped database operations
+- Separation of persistence and external I/O
+- Deterministic service initialization
+- Indexed time-based querying
+- Built-in retry and failure recovery mechanisms
+- Immutable domain entities
+- Repository-service architectural pattern
+- Concurrent download and processing workflows
+- Dynamic scheduler-driven pipeline execution

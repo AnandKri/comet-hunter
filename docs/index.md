@@ -12,8 +12,6 @@ NASA's Sungrazer Project enables the discovery and reporting of comets visible f
 
 For comet discovery, users may rely on commercially available tools or software to streamline parts of the workflow or assist in identifying potential comets. However, there is no single platform that streamlines the end-to-end comet hunting process. **Comet Hunter** was created with the aim of helping bridge this gap.
 
----
-
 ## Core Capabilities
 
 - Synchronization of LASCO metadata and downlink schedules
@@ -24,8 +22,6 @@ For comet discovery, users may rely on commercially available tools or software 
 - Persistent lifecycle tracking using SQLite
 - Concurrent download and processing execution
 - Retry-safe and recovery-oriented workflows
-
----
 
 ## Pipeline Overview
 
@@ -42,8 +38,6 @@ Image Processing
        ↓
 Visualization of Processed Outputs
 ```
-
----
 
 ## Architecture
 
@@ -75,8 +69,6 @@ Infrastructure
 | Infrastructure | Provides low-level database connection and query execution mechanisms |
 | Domain | Immutable entities and deterministic lifecycle/state transition rules shared across layers |
 
----
-
 ## Processing Lifecycle
 
 Files move through a deterministic lifecycle:
@@ -97,8 +89,6 @@ PROCESSED
 
 Recovery and retry states are also supported for fault tolerance and resumability.
 
----
-
 ## Key Design Principles
 
 - **Idempotent execution** : Re-running workflows does not duplicate processing.
@@ -111,8 +101,6 @@ Recovery and retry states are also supported for fault tolerance and resumabilit
 
 - **Repository abstraction** : Database access is centralized through query specifications and executors.
 
----
-
 ## Engineering Principles
 
 The project emphasizes clean system design, modular architecture, and explicit separation of concerns across domain, service, repository, and infrastructure layers.
@@ -121,7 +109,6 @@ The codebase follows strongly typed interfaces, immutable domain modeling, struc
 
 Additional focus is placed on observability, maintainability, naming consistency, and production-oriented backend engineering practices.
 
----
 ## Technologies
 
 ### Backend & API
@@ -142,7 +129,6 @@ Additional focus is placed on observability, maintainability, naming consistency
 - Repository-Service-Domain architecture
 - Immutable dataclass-based domain modeling
 - Concurrent execution with ThreadPoolExecutor
----
 
 ## Project Goals
 
