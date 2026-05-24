@@ -16,7 +16,7 @@
         <link rel="prev" href="..">
       
       
-        <link rel="next" href="../pipeline/">
+        <link rel="next" href="../file_lifecycle/">
       
       
         
@@ -338,10 +338,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-domain-layer" class="md-nav__link">
+  <a href="#execution-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Domain Layer
+        Execution Flow
       
     </span>
   </a>
@@ -349,10 +349,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-repository-layer" class="md-nav__link">
+  <a href="#1-api-layer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Repository Layer
+        1. API Layer
       
     </span>
   </a>
@@ -360,10 +360,54 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-infrastructure-layer" class="md-nav__link">
+  <a href="#2-pipeline-layer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Infrastructure Layer
+        2. Pipeline Layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-service-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Service Layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-repository-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Repository Layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-domain-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Domain Layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-infrastructure-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Infrastructure Layer
       
     </span>
   </a>
@@ -393,10 +437,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#current-focus" class="md-nav__link">
+  <a href="#design-priorities" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current Focus
+        Design Priorities
       
     </span>
   </a>
@@ -419,42 +463,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../pipeline/" class="md-nav__link">
+      <a href="../file_lifecycle/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Pipeline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../processing_pipeline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Processing Pipeline
+    File Lifecycle
   
 
     
@@ -1110,10 +1126,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-domain-layer" class="md-nav__link">
+  <a href="#execution-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Domain Layer
+        Execution Flow
       
     </span>
   </a>
@@ -1121,10 +1137,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-repository-layer" class="md-nav__link">
+  <a href="#1-api-layer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Repository Layer
+        1. API Layer
       
     </span>
   </a>
@@ -1132,10 +1148,54 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-infrastructure-layer" class="md-nav__link">
+  <a href="#2-pipeline-layer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Infrastructure Layer
+        2. Pipeline Layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-service-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Service Layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-repository-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Repository Layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-domain-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Domain Layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-infrastructure-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Infrastructure Layer
       
     </span>
   </a>
@@ -1165,10 +1225,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#current-focus" class="md-nav__link">
+  <a href="#design-priorities" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current Focus
+        Design Priorities
       
     </span>
   </a>
@@ -1196,41 +1256,90 @@
 <p>Comet Hunter is structured as a layered backend system centered around explicit state modeling and time-aware data flow.</p>
 <p>The current focus is correctness and clarity rather than scale.</p>
 <hr />
-<h3 id="1-domain-layer">1. Domain Layer<a class="headerlink" href="#1-domain-layer" title="Permanent link">&para;</a></h3>
-<p>Contains core entities and state definitions.</p>
+<h3 id="execution-flow">Execution Flow<a class="headerlink" href="#execution-flow" title="Permanent link">&para;</a></h3>
+<p>API Route
+  → Pipeline
+    → Service
+      → Repository
+        → SQLite</p>
+<p>Services may additionally coordinate:
+- remote HTTP retrieval
+- file downloads
+- image processing
+- lifecycle recovery</p>
+<h3 id="1-api-layer">1. API Layer<a class="headerlink" href="#1-api-layer" title="Permanent link">&para;</a></h3>
+<p>Responsible for external interaction with the system</p>
+<p>Responsibilities:
+- REST endpoints
+- Request validation
+- Response serialization
+- Background job triggering
+- Termination of inflight job
+- Scheduler control</p>
 <p>Examples:
-- DownlinkSlot
-- FileMetadata
-- ProcessedFile</p>
+- <code>/slots</code>
+- <code>/frames</code>
+- <code>/health</code>
+- <code>/jobs</code></p>
+<p>The API layer contains no business logic and delegates orchestration to the pipeline layer</p>
+<h3 id="2-pipeline-layer">2. Pipeline Layer<a class="headerlink" href="#2-pipeline-layer" title="Permanent link">&para;</a></h3>
+<p>Coordinates workflows across multiple services.</p>
+<p>Responsibilities:
+- Workflow orchestration
+- Recovery corrdination
+- Sequencing ingestion and processing stages
+- Scheduler-driven execution</p>
+<p>Examples:
+- Live ingestion pipeline
+- Observation-based synchronization pipeline</p>
+<p>The Pipeline layer acts as a application orchestration boundary</p>
+<h3 id="3-service-layer">3. Service Layer<a class="headerlink" href="#3-service-layer" title="Permanent link">&para;</a></h3>
+<p>Contains business workflows and lifecycle logic</p>
+<p>Responsibilities:
+- Slot synchronization
+- Metadata Ingestion
+- File Downloading
+- File Processing</p>
 <p>Characteristics:
-- No direct database logic
-- Enum-driven lifecycle states
-- Explicit modeling of transitions</p>
-<p>The goal is to make state progression visible and predictable.</p>
-<hr />
-<h3 id="2-repository-layer">2. Repository Layer<a class="headerlink" href="#2-repository-layer" title="Permanent link">&para;</a></h3>
-<p>Responsible for:</p>
-<ul>
-<li>Persistence (SQLite)</li>
-<li>Indexed queries</li>
-<li>Transaction boundaries</li>
-</ul>
-<p>Design decisions:
-- Per-operation transactions
+- Explicit state-driven transitions
+- Idempotent execution behaviour
+- Recovery-oriented workflows</p>
+<p>Services coordinate repositories and infrastructure operations while remaining persistence-aware but storage-agnostic.</p>
+<h3 id="4-repository-layer">4. Repository Layer<a class="headerlink" href="#4-repository-layer" title="Permanent link">&para;</a></h3>
+<p>Responsibilities:
+- Persistence (SQLite)
+- Indexed queries
+- Transaction boundaries</p>
+<p>Characteristics:
+- Transaction-scoped repository operations
 - Explicit constraints
 - Indexed timestamp columns
 - Deterministic schema initialization</p>
-<p>The repository layer abstracts storage concerns from domain logic.</p>
-<hr />
-<h3 id="3-infrastructure-layer">3. Infrastructure Layer<a class="headerlink" href="#3-infrastructure-layer" title="Permanent link">&para;</a></h3>
-<p>Handles:</p>
-<ul>
-<li>Remote metadata retrieval</li>
-<li>File downloading</li>
-<li>Local file management</li>
-<li>Frame processing</li>
-</ul>
-<p>Database updates are intentionally separated from network and file I/O operations to reduce side-effect coupling.</p>
+<p>Repositories isolate storage concerns from workflow orchestration.</p>
+<h3 id="5-domain-layer">5. Domain Layer<a class="headerlink" href="#5-domain-layer" title="Permanent link">&para;</a></h3>
+<p>Contains core entities and state definitions.</p>
+<p>Examples:
+- <code>DownlinkSlot</code>
+- <code>FileMetadata</code>
+- <code>ProcessedFile</code></p>
+<p>Characteristics:
+- Enum-driven lifecycle states
+- Explicit modeling of transitions</p>
+<p>The domain layer contains no database or infrastructure logic.</p>
+<h3 id="6-infrastructure-layer">6. Infrastructure Layer<a class="headerlink" href="#6-infrastructure-layer" title="Permanent link">&para;</a></h3>
+<p>Provides low-level operational capabilities used by higher layers:</p>
+<p>Responsibilities:
+- Database connectivity
+- HTTP interaction
+- File system access
+- Image loading/saving
+- Scheduler runtime integration</p>
+<p>Examples:
+- SQLite connection handling
+- Remote metadata retrieval
+- FITS file access
+- APScheduler integration</p>
+<p>Infrastructure components support higher layers without containing workflow logic.</p>
 <hr />
 <h3 id="state-driven-pipeline">State-Driven Pipeline<a class="headerlink" href="#state-driven-pipeline" title="Permanent link">&para;</a></h3>
 <p>The ingestion model progresses through explicit stages:</p>
@@ -1245,7 +1354,6 @@ DISCOVERED → DOWNLOADING → DOWNLOADED → READY → PROCESSING → PROCESSED
 <li>Designed to be safely re-executable</li>
 </ul>
 <p>This prevents duplicate downloads and inconsistent processing.</p>
-<hr />
 <h3 id="temporal-modeling">Temporal Modeling<a class="headerlink" href="#temporal-modeling" title="Permanent link">&para;</a></h3>
 <p>Time is treated as a primary dimension:</p>
 <ul>
@@ -1255,15 +1363,15 @@ DISCOVERED → DOWNLOADING → DOWNLOADED → READY → PROCESSING → PROCESSED
 </ul>
 <p>This aligns the database structure with the expected access pattern:
 chronological playback.</p>
-<hr />
-<h3 id="current-focus">Current Focus<a class="headerlink" href="#current-focus" title="Permanent link">&para;</a></h3>
+<h3 id="design-priorities">Design Priorities<a class="headerlink" href="#design-priorities" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Clear separation of concerns</li>
-<li>Explicit lifecycle modeling</li>
+<li>Deterministic lifecycle management</li>
 <li>Idempotent ingestion behavior</li>
+<li>Clear separation of concerns</li>
 <li>Reliable chronological retrieval</li>
+<li>Recovery-oriented execution</li>
 </ul>
-<p>Scaling and distributed concerns are out of scope at this stage.</p>
+<p>Horizontal scalability and distributed orchestration are intentionally out of scope at the current stage.</p>
 
 
 

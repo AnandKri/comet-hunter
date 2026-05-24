@@ -304,42 +304,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../pipeline/" class="md-nav__link">
+      <a href="../../file_lifecycle/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Pipeline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../processing_pipeline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Processing Pipeline
+    File Lifecycle
   
 
     
@@ -1258,7 +1230,7 @@
 
 
 <a href="#backend.services.process_file_service.ProcessFileService.get_files_by_observation_and_status" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">get_files_by_observation_and_status</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">observation_start_utc</span><span class="p">,</span> <span class="n">observation_end_utc</span><span class="p">)</span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">get_files_by_observation_and_status</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">observation_start_utc</span><span class="p">,</span> <span class="n">observation_end_utc</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1283,7 +1255,7 @@
 
 
 <a href="#backend.services.process_file_service.ProcessFileService.mark_ready_files_for_processing" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">mark_ready_files_for_processing</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">observation_start_utc</span><span class="p">,</span> <span class="n">observation_end_utc</span><span class="p">)</span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">mark_ready_files_for_processing</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">observation_start_utc</span><span class="p">,</span> <span class="n">observation_end_utc</span><span class="p">,</span> <span class="n">cancel_event</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1308,7 +1280,7 @@ updates relevant files' status as <code>READY</code>.</p>
 
 
 <a href="#backend.services.process_file_service.ProcessFileService.process_pending_files" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">process_pending_files</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">observation_start_utc</span><span class="p">,</span> <span class="n">observation_end_utc</span><span class="p">)</span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">process_pending_files</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">observation_start_utc</span><span class="p">,</span> <span class="n">observation_end_utc</span><span class="p">,</span> <span class="n">cancel_event</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">

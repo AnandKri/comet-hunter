@@ -304,42 +304,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../pipeline/" class="md-nav__link">
+      <a href="../../file_lifecycle/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Pipeline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../processing_pipeline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Processing Pipeline
+    File Lifecycle
   
 
     
@@ -1656,7 +1628,7 @@ timestamps are stored as ISO-8601 UTC strings</p>
 
 
 <a href="#backend.database.repositories.processed_file_repository.ProcessedFileRepository.get_files_by_observation_and_status" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">get_files_by_observation_and_status</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">observation_start_utc</span><span class="p">,</span> <span class="n">observation_end_utc</span><span class="p">)</span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">get_files_by_observation_and_status</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">observation_start_utc</span><span class="p">,</span> <span class="n">observation_end_utc</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1666,6 +1638,8 @@ timestamps are stored as ISO-8601 UTC strings</p>
 :param status: file status
 :param observation_start_utc: starting utc timestamp of observation
 :param observation_end_utc: ending utc timestamp of observation
+:param limit: max number of rows to fetch
+:param offset: number of rows to skip
 :return: list of processed file domain entities</p>
 
 

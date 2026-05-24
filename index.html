@@ -515,42 +515,14 @@
   
   
     <li class="md-nav__item">
-      <a href="pipeline/" class="md-nav__link">
+      <a href="file_lifecycle/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Pipeline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="processing_pipeline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Processing Pipeline
+    File Lifecycle
   
 
     
@@ -1393,9 +1365,8 @@
 <p>The project serves as an engineering exercise in building fault-tolerant data pipelines, immutable state-driven workflows, and recovery-oriented backend systems.</p>
 <p>It explores scientific computing, concurrent processing, and orchestration patterns in a real-world observational data context.</p>
 <h2 id="context-inspiration">Context &amp; Inspiration<a class="headerlink" href="#context-inspiration" title="Permanent link">&para;</a></h2>
-<p>NASA's Sungrazer Project enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over <strong>four thousand</strong> comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — <strong>C2</strong> and <strong>C3</strong>. Images from these telescopes are primarily used for reporting new comets.</p>
+<p>NASA's Sungrazer Project enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over <strong>5000</strong> comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — <strong>C2</strong> and <strong>C3</strong>. Images from these telescopes are primarily used for reporting new comets.</p>
 <p>For comet discovery, users may rely on commercially available tools or software to streamline parts of the workflow or assist in identifying potential comets. However, there is no single platform that streamlines the end-to-end comet hunting process. <strong>Comet Hunter</strong> was created with the aim of helping bridge this gap.</p>
-<hr />
 <h2 id="core-capabilities">Core Capabilities<a class="headerlink" href="#core-capabilities" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Synchronization of LASCO metadata and downlink schedules</li>
@@ -1407,7 +1378,6 @@
 <li>Concurrent download and processing execution</li>
 <li>Retry-safe and recovery-oriented workflows</li>
 </ul>
-<hr />
 <h2 id="pipeline-overview">Pipeline Overview<a class="headerlink" href="#pipeline-overview" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>Downlink Slots
        ↓
@@ -1421,7 +1391,6 @@ Image Processing
        ↓
 Visualization of Processed Outputs
 </code></pre></div>
-<hr />
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
 <p>The project follows a layered architecture with clear separation of concerns:</p>
 <div class="highlight"><pre><span></span><code>API
@@ -1470,7 +1439,6 @@ Infrastructure
 </tr>
 </tbody>
 </table>
-<hr />
 <h2 id="processing-lifecycle">Processing Lifecycle<a class="headerlink" href="#processing-lifecycle" title="Permanent link">&para;</a></h2>
 <p>Files move through a deterministic lifecycle:</p>
 <div class="highlight"><pre><span></span><code>DISCOVERED
@@ -1486,7 +1454,6 @@ PROCESSING
 PROCESSED
 </code></pre></div>
 <p>Recovery and retry states are also supported for fault tolerance and resumability.</p>
-<hr />
 <h2 id="key-design-principles">Key Design Principles<a class="headerlink" href="#key-design-principles" title="Permanent link">&para;</a></h2>
 <ul>
 <li>
@@ -1505,12 +1472,9 @@ PROCESSED
 <p><strong>Repository abstraction</strong> : Database access is centralized through query specifications and executors.</p>
 </li>
 </ul>
-<hr />
 <h2 id="engineering-principles">Engineering Principles<a class="headerlink" href="#engineering-principles" title="Permanent link">&para;</a></h2>
-<p>The project emphasizes clean system design, modular architecture, and explicit separation of concerns across domain, service, repository, and infrastructure layers.</p>
-<p>The codebase follows strongly typed interfaces, immutable domain modeling, structured data abstractions, deterministic lifecycle management, validation-first workflows, and extensive inline documentation through type hints and docstrings.</p>
-<p>Additional focus is placed on observability, maintainability, naming consistency, and production-oriented backend engineering practices.</p>
-<hr />
+<p>The project emphasizes modular architecture, deterministic workflows, immutable domain modeling, explicit lifecycle management, and recovery-oriented pipeline design.</p>
+<p>Additional focus is placed on observability, maintainability, and operational resilience.</p>
 <h2 id="technologies">Technologies<a class="headerlink" href="#technologies" title="Permanent link">&para;</a></h2>
 <h3 id="backend-api">Backend &amp; API<a class="headerlink" href="#backend-api" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1535,7 +1499,6 @@ PROCESSED
 <li>Immutable dataclass-based domain modeling</li>
 <li>Concurrent execution with ThreadPoolExecutor</li>
 </ul>
-<hr />
 <h2 id="project-goals">Project Goals<a class="headerlink" href="#project-goals" title="Permanent link">&para;</a></h2>
 <p>Comet Hunter is intended to serve as:</p>
 <ul>

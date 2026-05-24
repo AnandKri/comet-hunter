@@ -304,42 +304,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../pipeline/" class="md-nav__link">
+      <a href="../../file_lifecycle/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Pipeline
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../processing_pipeline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Processing Pipeline
+    File Lifecycle
   
 
     
@@ -687,6 +659,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#backend.services.slot_service.SlotService.get_next_active_slot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_next_active_slot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend.services.slot_service.SlotService.get_past_slots" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -720,10 +703,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#backend.services.slot_service.SlotService.sync_and_get_active_slot" class="md-nav__link">
+  <a href="#backend.services.slot_service.SlotService.reconcile_slot_states" class="md-nav__link">
     <span class="md-ellipsis">
       
-        sync_and_get_active_slot
+        reconcile_slot_states
       
     </span>
   </a>
@@ -1194,6 +1177,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#backend.services.slot_service.SlotService.get_next_active_slot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_next_active_slot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend.services.slot_service.SlotService.get_past_slots" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1227,10 +1221,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#backend.services.slot_service.SlotService.sync_and_get_active_slot" class="md-nav__link">
+  <a href="#backend.services.slot_service.SlotService.reconcile_slot_states" class="md-nav__link">
     <span class="md-ellipsis">
       
-        sync_and_get_active_slot
+        reconcile_slot_states
       
     </span>
   </a>
@@ -1350,8 +1344,12 @@
 
     <div class="doc doc-contents ">
 
-        <p>Fetch active slot if available.</p>
-<p>:return: returns DownlinkSlot domain entity of active slot if present</p>
+        <p>Return the current active slot if available.</p>
+<p>Workflow:
+1. Reconcile expired slot states
+2. Return existing ACTIVE slot if present
+3. Claim next eligible PENDING slot if applicable</p>
+<p>:return: Active DownlinkSlot if available, else None</p>
 
 
     </div>
@@ -1377,6 +1375,28 @@ and we want to see next upcoming slots.</p>
 <p>:param downlink_start_utc: starting UTC timestamp (expected to be current timestamp)
 :param downlink_end_utc: Upper bound UTC timestamp
 :return: Return list of slot domain entities.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="backend.services.slot_service.SlotService.get_next_active_slot" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_next_active_slot</span>
+
+
+<a href="#backend.services.slot_service.SlotService.get_next_active_slot" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">get_next_active_slot</span><span class="p">()</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Returns the next active slot if present. This is intended to be used
+after no active slot is found and next upcoming active slot is required.</p>
+<p>:return: Active DownlinkSlot if available, else None</p>
 
 
     </div>
@@ -1457,25 +1477,21 @@ slot or not. </p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="backend.services.slot_service.SlotService.sync_and_get_active_slot" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">sync_and_get_active_slot</span>
+<h3 id="backend.services.slot_service.SlotService.reconcile_slot_states" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">reconcile_slot_states</span>
 
 
-<a href="#backend.services.slot_service.SlotService.sync_and_get_active_slot" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">sync_and_get_active_slot</span><span class="p">()</span>
+<a href="#backend.services.slot_service.SlotService.reconcile_slot_states" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">reconcile_slot_states</span><span class="p">()</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Performs slot lifecycle synchronization and optionally returns 
-active slot if any.</p>
-<p>Steps:
-1. Marks expired PENDING slots as MISSED
-2. Returns existing ACTIVE slot if present
-3. Otherwise claims next eligible PENDING slot as ACTIVE</p>
-<p>This method is intended to be called during system initialization
-or scheduling cycles.</p>
-<p>:return: Active DownlinkSlot if available, else None</p>
+        <p>Reconcile slot lifecycle states based on current UTC time.</p>
+<p>Transitions:
+- ACTIVE -&gt; MISSED
+- PENDING -&gt; MISSED</p>
+<p>:return: None</p>
 
 
     </div>
@@ -1490,13 +1506,14 @@ or scheduling cycles.</p>
 
 
 <a href="#backend.services.slot_service.SlotService.sync_slots" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">sync_slots</span><span class="p">()</span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">sync_slots</span><span class="p">(</span><span class="n">cancel_event</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Fetch slot data from remote source and update 
-database.</p>
+database.
+:param cancel_event: event to track cancel request from user.</p>
 <p>:return: number of new slots inserted</p>
 
 
