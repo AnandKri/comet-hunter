@@ -1,86 +1,81 @@
 # Comet Hunter
 
-Comet Hunter is a tool which helps in discovering comets.
+Comet Hunter is an automated astronomical image ingestion and processing system designed to assist in the discovery of sungrazing comets from SOHO LASCO imagery.
 
 ## About The Project
 
-NASA's [Sungrazer Project](https://www.esa.int/Science_Exploration/Space_Science/Sungrazer_comets) enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over five thousand comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — C2 and C3. Images from these telescopes are primarily used for reporting new comets.
-
-For comet discovery, users rely on commercially available tools or software to streamline parts of the workflow or assist in identifying potential comets. However, there is no single platform that streamlines the end-to-end comet hunting process. **Comet Hunter is created with the aim of helping bridge this gap**.
+NASA's [Sungrazer Project](https://sungrazer.nrl.navy.mil/) enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over five thousand comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — C2 and C3. Images from these telescopes are primarily used for reporting new comets.
 
 ### Why This Exists?
 
-**Present challenges**:
-- RAW images are required to be processed before they become usable
-- Sungrazer comets are faint and often indistinguishable in single frame
-- Chronological playback of images significantly improves detectability
-- The citizen scientist community is large and highly active
+For comet discovery, users rely on fragmented tools for downloading, processing, and reviewing imagery. There is no unified platform that automates the complete workflow from raw image availability to chronological playback of processed frames. **Comet Hunter aims to bridge this gap**.
+
+### Present Challenges
+- RAW images must be processed before becoming usable
+- Sungrazer comets are often indistinguishable in single frames
+- Chronological playback significantly improves detectability
 - Most comets are reported within minutes of data availability.
 - **Time is critical.**
 
 The problem is not merely detection - it is **rapid** detection. 
 
-This requires a **robust automation** of the end-to-end process right from getting the RAW images to the chronological playback of processed images. And Comet Hunter does exactly this.
+This requires a **robust automation** of the complete workflow: from RAW image ingestion to chronological playback of processed frames.
+
+## Current Capabilities
+
+- Downlink slot synchronization
+- Metadata ingestion from LASCO sources
+- Parallel RAW image downloading
+- Image processing pipelines for C2/C3
+- Time-indexed frame retrieval
+- REST API backend
+- Scheduler-driver ingestion workflows
+- Interactive frontend visualization
 
 ## Getting Started
 
-### Running Locally
+### Clone Repository
 
-1. Initialize database
-2. Sync slots
-3. Sync metadata
-4. Trigger download
-5. Process files
-6. Visualization of processed files (planned)
+```bash
+git clone https://github.com/AnandKri/comet-hunter.git
+cd comet-hunter
+```
 
-(Commands and example script coming soon...)
+### Create Virtual Environment
 
-### Documentation
+**Linux/macOS**
 
-Complete project documentation can be found at [Comet Hunter](https://anandkri.github.io/comet-hunter/).
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
 
-### System Flow
+**Windows**
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
 
-1. Slot Modeling  
-2. File Metadata Ingestion  
-4. File Discovery and Download  
-5. File Processing  
-6. Time-Indexed Retrieval  
-7. Visualization Layer
+### Install Dependencies
 
-Each stage is independently restartable and governed by explicit state transitions.
+```bash
+pip install requirement.txt
+```
 
-### Current Scope
+### Run Backend
 
-Implemented:
-- Domain entities
-- Repository abstraction (SQLite)
-- Deterministic schema bootstrap
-- Enum-based finite state transitions
-- Indexed temporal access patterns
-- Metadata ingestion
-- Download orchestration
-- Processing pipeline
-- Image processing algorithm
-- REST retrieval API
-- Logging configuration
+```bash
+uvicorn backend.main:app --reload
+```
 
-In progress:
-- Background Job cancellation
-- Establishing Server-Sent Events
-- Interactive UI
+### Run Frontend
 
-### Architectural Characteristics
+```bash
+python frontend/app.py
+```
 
-- Domain-driven architecture
-- Idempotent ingestion and processing pipeline
-- Explicit lifecycle state machines
-- Transaction-scoped database operations
-- Separation of persistence and external I/O
-- Deterministic service initialization
-- Indexed time-based querying
-- Built-in retry and failure recovery mechanisms
-- Immutable domain entities
-- Repository-service architectural pattern
-- Concurrent download and processing workflows
-- Dynamic scheduler-driven pipeline execution
+## Documentation
+
+<a href="https://anandkri.github.io/comet-hunter/" target="_blank">
+View Full Documentation
+</a>
