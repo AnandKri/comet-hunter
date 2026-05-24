@@ -34,41 +34,41 @@ This requires a **robust automation** of the complete workflow: from RAW image i
 
 ## Getting Started
 
-### Clone Repository
+#### Clone Repository
 
 ```bash
 git clone https://github.com/AnandKri/comet-hunter.git
 cd comet-hunter
 ```
 
-### Create Virtual Environment
+#### Create Virtual Environment
 
-**Linux/macOS**
+Linux/macOS
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-**Windows**
+Windows
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 ```
 
-### Install Dependencies
+#### Install Dependencies
 
 ```bash
 pip install -r requirement.txt
 ```
 
-### Run Backend
+#### Run Backend
 
 ```bash
 uvicorn backend.main:app --reload
 ```
 
-### Run Frontend
+#### Run Frontend
 
 ```bash
 python frontend/app.py
