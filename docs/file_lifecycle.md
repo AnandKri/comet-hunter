@@ -1,6 +1,4 @@
-# Detailed Pipeline for processed_file_repository
-
-Explaining the file lifecycle
+# File Lifecycle
 
 1. States [ all possible states for a given file ]
     - DISCOVERED : raw file is available in the NASA opendirectory

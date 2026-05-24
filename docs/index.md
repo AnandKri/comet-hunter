@@ -8,7 +8,7 @@ It explores scientific computing, concurrent processing, and orchestration patte
 
 ## Context & Inspiration
 
-NASA's Sungrazer Project enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over **four thousand** comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — **C2** and **C3**. Images from these telescopes are primarily used for reporting new comets.
+NASA's Sungrazer Project enables the discovery and reporting of comets visible from the SOHO and STEREO satellites. To date, over **5000** comets have been discovered using the SOHO satellite. On board SOHO is the LASCO coronagraph, which consists of two telescopes — **C2** and **C3**. Images from these telescopes are primarily used for reporting new comets.
 
 For comet discovery, users may rely on commercially available tools or software to streamline parts of the workflow or assist in identifying potential comets. However, there is no single platform that streamlines the end-to-end comet hunting process. **Comet Hunter** was created with the aim of helping bridge this gap.
 
@@ -103,11 +103,9 @@ Recovery and retry states are also supported for fault tolerance and resumabilit
 
 ## Engineering Principles
 
-The project emphasizes clean system design, modular architecture, and explicit separation of concerns across domain, service, repository, and infrastructure layers.
+The project emphasizes modular architecture, deterministic workflows, immutable domain modeling, explicit lifecycle management, and recovery-oriented pipeline design.
 
-The codebase follows strongly typed interfaces, immutable domain modeling, structured data abstractions, deterministic lifecycle management, validation-first workflows, and extensive inline documentation through type hints and docstrings.
-
-Additional focus is placed on observability, maintainability, naming consistency, and production-oriented backend engineering practices.
+Additional focus is placed on observability, maintainability, and operational resilience.
 
 ## Technologies
 

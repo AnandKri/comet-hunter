@@ -31,8 +31,7 @@ nav:
 
   - Architecture:
       - Overview: architecture.md
-      - Pipeline: pipeline.md
-      - Processing Pipeline: processing_pipeline.md
+      - File Lifecycle: file_lifecycle.md
       - Database: database_schema.md
 
   - Domain:

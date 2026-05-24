@@ -6,52 +6,121 @@ The current focus is correctness and clarity rather than scale.
 
 ---
 
-### 1. Domain Layer
+### Execution Flow
 
-Contains core entities and state definitions.
+API Route
+  → Pipeline
+    → Service
+      → Repository
+        → SQLite
+
+Services may additionally coordinate:
+- remote HTTP retrieval
+- file downloads
+- image processing
+- lifecycle recovery
+
+### 1. API Layer
+
+Responsible for external interaction with the system
+
+Responsibilities:
+- REST endpoints
+- Request validation
+- Response serialization
+- Background job triggering
+- Termination of inflight job
+- Scheduler control
 
 Examples:
-- DownlinkSlot
-- FileMetadata
-- ProcessedFile
+- `/slots`
+- `/frames`
+- `/health`
+- `/jobs`
+
+The API layer contains no business logic and delegates orchestration to the pipeline layer
+
+### 2. Pipeline Layer
+
+Coordinates workflows across multiple services.
+
+Responsibilities:
+- Workflow orchestration
+- Recovery corrdination
+- Sequencing ingestion and processing stages
+- Scheduler-driven execution
+
+Examples:
+- Live ingestion pipeline
+- Observation-based synchronization pipeline
+
+The Pipeline layer acts as a application orchestration boundary
+
+### 3. Service Layer
+
+Contains business workflows and lifecycle logic
+
+Responsibilities:
+- Slot synchronization
+- Metadata Ingestion
+- File Downloading
+- File Processing
 
 Characteristics:
-- No direct database logic
-- Enum-driven lifecycle states
-- Explicit modeling of transitions
+- Explicit state-driven transitions
+- Idempotent execution behaviour
+- Recovery-oriented workflows
 
-The goal is to make state progression visible and predictable.
+Services coordinate repositories and infrastructure operations while remaining persistence-aware but storage-agnostic.
 
----
+### 4. Repository Layer
 
-### 2. Repository Layer
-
-Responsible for:
-
+Responsibilities:
 - Persistence (SQLite)
 - Indexed queries
 - Transaction boundaries
 
-Design decisions:
-- Per-operation transactions
+Characteristics:
+- Transaction-scoped repository operations
 - Explicit constraints
 - Indexed timestamp columns
 - Deterministic schema initialization
 
-The repository layer abstracts storage concerns from domain logic.
+Repositories isolate storage concerns from workflow orchestration.
 
----
+### 5. Domain Layer
 
-### 3. Infrastructure Layer
+Contains core entities and state definitions.
 
-Handles:
+Examples:
+- `DownlinkSlot`
+- `FileMetadata`
+- `ProcessedFile`
 
+Characteristics:
+- Enum-driven lifecycle states
+- Explicit modeling of transitions
+
+The domain layer contains no database or infrastructure logic.
+
+### 6. Infrastructure Layer
+
+Provides low-level operational capabilities used by higher layers:
+
+Responsibilities:
+- Database connectivity
+- HTTP interaction
+- File system access
+- Image loading/saving
+- Scheduler runtime integration
+
+Examples:
+- SQLite connection handling
 - Remote metadata retrieval
-- File downloading
-- Local file management
-- Frame processing
+- FITS file access
+- APScheduler integration
 
-Database updates are intentionally separated from network and file I/O operations to reduce side-effect coupling.
+Infrastructure components support higher layers without containing workflow logic.
 
 ---
 
@@ -73,8 +142,6 @@ Each transition is:
 
 This prevents duplicate downloads and inconsistent processing.
 
----
-
 ### Temporal Modeling
 
 Time is treated as a primary dimension:
@@ -86,13 +153,12 @@ Time is treated as a primary dimension:
 This aligns the database structure with the expected access pattern:
 chronological playback.
 
----
+### Design Priorities
 
-### Current Focus
-
-- Clear separation of concerns
-- Explicit lifecycle modeling
+- Deterministic lifecycle management
 - Idempotent ingestion behavior
+- Clear separation of concerns
 - Reliable chronological retrieval
+- Recovery-oriented execution
 
-Scaling and distributed concerns are out of scope at this stage.
+Horizontal scalability and distributed orchestration are intentionally out of scope at the current stage.

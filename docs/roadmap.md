@@ -1,6 +1,6 @@
 # Roadmap
 
-The roadmap is organized around system maturity rather than feature breadth.
+The roadmap is organized around system maturity.
 
 ---
 

@@ -29,7 +29,7 @@ This requires a **robust automation** of the complete workflow: from RAW image i
 - Image processing pipelines for C2/C3
 - Time-indexed frame retrieval
 - REST API backend
-- Scheduler-driver ingestion workflows
+- Scheduler-driven ingestion workflows
 - Interactive frontend visualization
 
 ## Getting Started
@@ -59,7 +59,7 @@ python -m venv .venv
 ### Install Dependencies
 
 ```bash
-pip install requirement.txt
+pip install -r requirement.txt
 ```
 
 ### Run Backend
