@@ -1,10 +1,16 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from queue import Queue, Empty
+from typing import Generator
+import json
+import time
 from backend.jobs.background_job_service import BackgroundJobService
+from backend.jobs.event_bus import EventBus
 from backend.jobs.job_store import JobStore
-from backend.api.dependencies import get_job_service, get_job_store
+from backend.api.dependencies import get_job_service, get_job_store, get_event_bus
 from backend.api.dto.api_response import ApiSuccessResponse
-from backend.api.dto.response_models import JobStatusResponse
+from backend.api.dto.response_models import JobStatusResponse 
 from backend.util.enums import JobStatus
 
 router = APIRouter()
@@ -91,7 +97,118 @@ def get_job(
         )
         raise
 
-@router.post("/{job_id}/cancel", repsonse_model=ApiSuccessResponse[dict])
+@router.get("/{job_id}/events")
+def stream_job_events(
+    job_id: str,
+    event_bus: EventBus = Depends(get_event_bus)
+) -> StreamingResponse:
+    """
+    Stream real-time events using server-sent events.
+    
+    Responsibilities:
+    - Subscribe client to job-specific event stream
+    - Continously stream published events.
+    - Cleanup subscription on client disconnect or job completion.
+
+    Event format:
+        "event": <event_type>,
+        "data": <json_payload>
+    
+    Example streamed payload:
+        "event": "progress",
+        "data":{"download": 12}
+
+    Notes:
+    - Connection remains open until job completion or client disconnect.
+    - Intended for real-time monitoring of long-running jobs.
+    - Uses in-memory event bus subscriptions.
+    - Each connected client gets dedicated queue.
+
+    :param job_id:
+        Unique identifier of the background job.
+    
+    :param event_bus:
+        Shared event bus dependency.
+    
+    :return:
+        StreamingResponse configured for server-sent events.
+    """
+    logger.info(
+        "Job event stream requested",
+        extra={"job_id": job_id}
+    )
+
+    def event_generator() -> Generator[str, None, None]:
+        """
+        Generate SSE-formatted event stream.
+
+        Workflow:
+        - Subscribe to event bus.
+        - Wait for events.
+        - Yield events in SSE format.
+        - Cleanup / Disconnect.
+
+        Yields:
+            str: SSE-formatted event string.
+        """
+
+        queue = event_bus.subscribe(job_id)
+
+        terminal_events = {
+            "COMPLETED",
+            "FAILED",
+            "CANCELLED"
+        }
+
+
+        try:
+            while True:
+                try:
+                    event = queue.get(timeout=15)
+
+                    yield (
+                        f"event: {event['type']}\n"
+                        f"data: {json.dumps(event)}\n\n"
+                    )
+
+                    if event["type"] in terminal_events:
+                        break
+                
+                except Empty:
+                    """
+                    Heartbeat to keep connection alive.
+
+                    Prevents:
+                    - proxy timeout
+                    - connection idle termination
+                    """
+                    yield ": keepalive\n\n"
+                
+                time.sleep(0.1)
+        except GeneratorExit:
+            logger.info(
+                "job event stream disconnected",
+                extra={"job_id": job_id}
+            )
+        finally:
+
+            event_bus.unsubscribe(job_id, queue)
+            logger.info(
+                "job event subscription cleaned up",
+                extra={"job_id": job_id}
+            )
+        
+    return StreamingResponse(
+        content = event_generator(),
+        media_type = "text/event-stream",
+        headers = {
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+@router.post("/{job_id}/cancel", response_model=ApiSuccessResponse[dict])
 def cancel_job(
     job_id: str,
     job_store: JobStore = Depends(get_job_store)
