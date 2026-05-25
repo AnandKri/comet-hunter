@@ -41,6 +41,8 @@ def get_processed_frames(
             offset
         )
 
+        logger.info("Processed frames retrieval successful")
+
         return ApiSuccessResponse[GetFramesResponse](
             data=serialize_get_frames_response(result)
         )
