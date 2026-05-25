@@ -11,6 +11,7 @@ from backend.pipeline.pipeline import Pipeline
 from backend.pipeline.scheduler import Scheduler
 from backend.jobs.job_store import job_store, JobStore
 from backend.jobs.background_job_service import BackgroundJobService
+from backend.jobs.event_bus import event_bus, EventBus
 
 background_job_service = BackgroundJobService(job_store)
 
@@ -66,3 +67,10 @@ def get_job_service() -> BackgroundJobService:
     Used for submitting and managing background jobs.
     """
     return background_job_service
+
+def get_event_bus() -> EventBus:
+    """
+    Returns shared event bus instance. 
+    """
+
+    return event_bus
