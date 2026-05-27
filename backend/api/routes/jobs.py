@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from queue import Queue, Empty
 from typing import Generator
+from dataclasses import asdict
 import json
 import time
 from backend.jobs.background_job_service import BackgroundJobService
@@ -164,14 +165,19 @@ def stream_job_events(
         try:
             while True:
                 try:
-                    event = queue.get(timeout=15)
+                    event = queue.get(timeout=5)
+
+                    payload = asdict(event)
+                    payload["job_status"] = payload["job_status"].value
+                    payload["job_type"] = payload["job_type"].value
+                    payload["timestamp"] = payload["timestamp"].isoformat()
 
                     yield (
-                        f"event: {event['type']}\n"
-                        f"data: {json.dumps(event)}\n\n"
+                        f"event: {event.event}\n"
+                        f"data: {json.dumps(payload)}\n\n"
                     )
 
-                    if event["type"] in terminal_events:
+                    if event.job_status in terminal_events:
                         break
                 
                 except Empty:
