@@ -1,6 +1,6 @@
-import asyncio
 from collections import defaultdict
 from queue import Queue
+from backend.jobs.event_models import JobEvent
 
 class EventBus:
     """
@@ -34,7 +34,7 @@ class EventBus:
 
         self._subscribers = defaultdict(list)
     
-    def publish(self, job_id: str, event: dict) -> None:
+    def publish(self, job_id: str, event: JobEvent) -> None:
         """
         Publish event to all subscribers listening to the given job.
 
@@ -46,7 +46,7 @@ class EventBus:
             Unique job identifier
         
         :param event:
-            Serializable event payload
+            JobEvent instance representing a event payload
         """
 
         queues = self._subscribers.get(job_id, [])
@@ -73,7 +73,7 @@ class EventBus:
             Subscriber queue
         """
 
-        queue = asyncio.Queue()
+        queue = Queue()
 
         self._subscribers[job_id].append(queue)
 

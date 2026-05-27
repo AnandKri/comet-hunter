@@ -2,12 +2,16 @@ from backend.services.slot_service import SlotService
 from backend.services.metadata_service import MetadataService
 from backend.services.download_file_service import DownloadFileService
 from backend.services.process_file_service import ProcessFileService
-from backend.util.enums import Instrument, FileStatus
+from backend.util.enums import Instrument, FileStatus, JobStatus, JobType
 from backend.pipeline.models import RunIngestionCycleResult, GetProcessedFramesResult, SyncProcessedFramesResult, SyncSlotsResult, SlotResult
 from backend.util.funcs import parse_utc_datetime
 from backend.jobs.exceptions import CancelledError
+from backend.jobs.event_models import JobEvent
+from backend.jobs.event_bus import event_bus
 from datetime import datetime, UTC, timedelta
 from threading import Event
+from dataclasses import field
+from typing import Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,13 +32,18 @@ class Pipeline:
         self.download_service = download_service
         self.process_service = process_service
     
-    def sync_slots(self, cancel_event: Event) -> SyncSlotsResult:
+    def sync_slots(self, 
+                   cancel_event: Event,
+                   job_id: str,
+                   job_type: JobType) -> SyncSlotsResult:
         """
         Syncs slots from remote source
         """
         logger.info("Slot sync pipeline started")
         try:
             slots_synced = self.slot_service.sync_slots(cancel_event)
+            
+            self.publish_job_event(job_id, job_type, "slot.synced", {"slots_synced":slots_synced})
             logger.info(
                 "Slot sync pipeline completed",
                 extra={"slots_synced": slots_synced}
@@ -101,7 +110,11 @@ class Pipeline:
             logger.exception("Get next active slot pipeline failed")
             raise
     
-    def run_ingestion_cycle(self, instrument: Instrument, cancel_event: Event) -> RunIngestionCycleResult:
+    def run_ingestion_cycle(self, 
+                            instrument: Instrument, 
+                            cancel_event: Event,
+                            job_id: str,
+                            job_type: str) -> RunIngestionCycleResult:
         """
         Syncs metadata and download files as they get available
         based on active slot.
@@ -120,6 +133,8 @@ class Pipeline:
             now = datetime.now(UTC)
             
             slot = self.slot_service.get_active_slot()
+            self.publish_job_event(job_id, job_type, "get_active_slot", {"active slot": slot is not None})
+
             if not slot:
                 next_run = self.slot_service.next_active_slot_in()
                 logger.info(
@@ -137,13 +152,17 @@ class Pipeline:
                 raise CancelledError()
             
             metadata_synced = self.metadata_service.sync_metadata_by_slots(instrument, [slot], cancel_event)
+            self.publish_job_event(job_id, job_type, "metadata.synced", {"metadata_synced": metadata_synced})
 
             self.download_service.recover_stale_files(now, instrument)
+            self.publish_job_event(job_id, job_type, "recover.download",)
 
             if cancel_event and cancel_event.is_set():
                 raise CancelledError()
 
+            self.publish_job_event(job_id, job_type, "downloading")
             downloaded = self.download_service.download_files_by_slots(instrument, [slot], cancel_event)
+            self.publish_job_event(job_id, job_type, "downloaded", {"downloaded": downloaded})
 
             logger.info(
                 "Ingestion cycle execution completed",
@@ -223,7 +242,9 @@ class Pipeline:
                              instrument: Instrument,
                              observation_start_utc: str,
                              observation_end_utc: str,
-                             cancel_event: Event) -> SyncProcessedFramesResult:
+                             cancel_event: Event,
+                             job_id: str,
+                             job_type: JobType) -> SyncProcessedFramesResult:
         """
         User driven observation based pipeline.
         returns detials of operation done for syncing processed frames for a given 
@@ -258,23 +279,35 @@ class Pipeline:
                 downlink_start_utc=padded_start,
                 downlink_end_utc=padded_end,
             )
+            self.publish_job_event(job_id, job_type, "metadata.synced", {"metadata_synced":metadata_synced})
 
             if cancel_event and cancel_event.is_set():
                 raise CancelledError()
 
             self.download_service.recover_stale_files(now_utc, instrument)
+            self.publish_job_event(job_id, job_type, "recover.download")
+            
+            self.publish_job_event(job_id, job_type, "downloading")
             downloaded = self.download_service.download_files_by_observation(instrument,observation_start_dt,observation_end_dt, cancel_event)
+            self.publish_job_event(job_id, job_type, "downloaded", {"downloaded":downloaded})
 
             if cancel_event and cancel_event.is_set():
                 raise CancelledError()
 
             self.process_service.recover_stale_files(now_utc, instrument)
+            self.publish_job_event(job_id, job_type, "recover.process")
+
+            self.publish_job_event(job_id, job_type, "marking ready")
             marked_ready = self.process_service.mark_ready_files_for_processing(instrument, observation_start_dt, observation_end_dt, cancel_event)
+            self.publish_job_event(job_id, job_type, "marked.ready", {"marked_ready":marked_ready})
             
             if cancel_event and cancel_event.is_set():
                 raise CancelledError()
 
+            self.publish_job_event(job_id, job_type, "processing")
             processed = self.process_service.process_pending_files(instrument, observation_start_dt, observation_end_dt, cancel_event)
+            self.publish_job_event(job_id, job_type, "processed", {"processed":processed})
+            
             logger.info(
                 "Processed frames sync pipeline completed",
                 extra={
@@ -299,3 +332,25 @@ class Pipeline:
         except Exception:
             logger.exception("Processed frames sync pipeline failed")
             raise
+    
+    def publish_job_event(
+        self,
+        job_id: str,
+        job_type: str,
+        event_name: str,
+        data: dict[str, Any] | None = None
+    ) -> None:
+        """
+        Publish standardized pipeline job event.
+        """
+
+        event_bus.publish(
+            job_id=job_id,
+            event=JobEvent(
+                job_id=job_id,
+                job_type=job_type,
+                job_status=JobStatus.RUNNING,
+                event=event_name,
+                data=data or {}
+            )
+        )

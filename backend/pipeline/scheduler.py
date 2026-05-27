@@ -20,7 +20,11 @@ class Scheduler:
         self.pipeline = pipeline
         self.running = False
         
-    def start(self, instruments: list[Instrument], cancel_event: Event) -> SchedulerStartResult:
+    def start(self, 
+              instruments: list[Instrument], 
+              cancel_event: Event, 
+              job_id: str,
+              job_type: str) -> SchedulerStartResult:
         """
         Starts the live ingestion pipeline for the given instruments.
 
@@ -55,8 +59,9 @@ class Scheduler:
                             "Running ingestion cycle for instrument",
                             extra={"instrument": instrument}
                         )
-                        result = self.pipeline.run_ingestion_cycle(instrument, cancel_event)
+                        result = self.pipeline.run_ingestion_cycle(instrument, cancel_event, job_id, job_type)
 
+                        self.pipeline.publish_job_event(job_id, job_type, "cycle.completed", {"next_run": str(result.next_run) if result.next_run else None})
                         logger.info(
                             "Ingestion cycle result",
                             extra={
