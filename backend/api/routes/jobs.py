@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from queue import Queue, Empty
+from queue import Empty
 from typing import Generator
 from dataclasses import asdict
 import json
@@ -156,11 +156,10 @@ def stream_job_events(
         queue = event_bus.subscribe(job_id)
 
         terminal_events = {
-            "COMPLETED",
-            "FAILED",
-            "CANCELLED"
+            JobStatus.COMPLETED,
+            JobStatus.FAILED,
+            JobStatus.CANCELLED
         }
-
 
         try:
             while True:
@@ -168,12 +167,13 @@ def stream_job_events(
                     event = queue.get(timeout=5)
 
                     payload = asdict(event)
+                    payload["event"] = payload["event"].value
                     payload["job_status"] = payload["job_status"].value
                     payload["job_type"] = payload["job_type"].value
                     payload["timestamp"] = payload["timestamp"].isoformat()
 
                     yield (
-                        f"event: {event.event}\n"
+                        f"event: {payload["event"]}\n"
                         f"data: {json.dumps(payload)}\n\n"
                     )
 
