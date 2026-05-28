@@ -100,7 +100,7 @@ class EventBus:
             Subscriber queue instance
         """
 
-        if job_id in self._subscribers:
+        if job_id in self._subscribers and queue in self._subscribers[job_id]:
             self._subscribers[job_id].remove(queue)
 
             if not self._subscribers[job_id]:
