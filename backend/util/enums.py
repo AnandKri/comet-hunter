@@ -93,3 +93,22 @@ class JobType(Enum):
 
     def __str__(self):
         return self.value
+
+class JobEventType(str, Enum):
+    JOB_RUNNING = "job.running"
+    JOB_COMPLETED = "job.completed"
+    JOB_CANCELLED = "job.cancelled"
+    JOB_FAILED = "job.failed"
+
+    SLOTS_SYNCED = "slots.synced"
+
+    METADATA_SYNCED = "metadata.synced"
+    DOWNLOAD_RECOVER = "download.recover"
+    DOWNLOAD_COMPLETED = "download.completed"
+
+    PROCESS_RECOVER = "process.recover"
+    PROCESS_READY = "process.ready"
+    PROCESS_COMPLETED = "process.completed"
+    
+    SLOT_ACTIVE = "slot.active"
+    CYCLE_COMPLETED = "cycle.completed"

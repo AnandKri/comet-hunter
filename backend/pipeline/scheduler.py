@@ -1,6 +1,6 @@
 from datetime import timedelta
 from threading import Event
-from backend.util.enums import Instrument
+from backend.util.enums import Instrument, JobEventType
 from backend.pipeline.pipeline import Pipeline
 from backend.pipeline.models import SchedulerStartResult
 from backend.jobs.exceptions import CancelledError
@@ -61,7 +61,7 @@ class Scheduler:
                         )
                         result = self.pipeline.run_ingestion_cycle(instrument, cancel_event, job_id, job_type)
 
-                        self.pipeline.publish_job_event(job_id, job_type, "cycle.completed", {"next_run": str(result.next_run) if result.next_run else None})
+                        self.pipeline.publish_job_event(job_id, job_type, JobEventType.CYCLE_COMPLETED, {"next_run": str(result.next_run) if result.next_run else None})
                         logger.info(
                             "Ingestion cycle result",
                             extra={

@@ -1,5 +1,5 @@
 from backend.jobs.job_store import job_store
-from backend.util.enums import JobStatus
+from backend.util.enums import JobStatus, JobEventType
 from datetime import datetime, UTC
 from backend.jobs.exceptions import CancelledError
 from backend.jobs.event_bus import event_bus
@@ -27,7 +27,7 @@ def run_job(job_id: str, fn, *args, **kwargs):
                 job_id=job.id,
                 job_type=job.type,
                 job_status=JobStatus.RUNNING,
-                event="job.running",
+                event=JobEventType.JOB_RUNNING,
                 data={}
             )
         )
@@ -54,7 +54,7 @@ def run_job(job_id: str, fn, *args, **kwargs):
                 job_id=job.id,
                 job_type=job.type,
                 job_status=JobStatus.COMPLETED,
-                event="job.completed",
+                event=JobEventType.JOB_COMPLETED,
                 data={}
             )
         )
@@ -75,7 +75,7 @@ def run_job(job_id: str, fn, *args, **kwargs):
                 job_id=job.id,
                 job_type=job.type,
                 job_status=JobStatus.CANCELLED,
-                event="job.cancelled",
+                event=JobEventType.JOB_CANCELLED,
                 data={}
             )
         )
@@ -96,7 +96,7 @@ def run_job(job_id: str, fn, *args, **kwargs):
                 job_id=job.id,
                 job_type=job.type,
                 job_status=JobStatus.FAILED,
-                event="job.failed",
+                event=JobEventType.JOB_FAILED,
                 data={}
             )
         )
