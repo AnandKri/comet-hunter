@@ -9,6 +9,7 @@ from backend.api.dependencies import get_scheduler
 from backend.api.routes import frames, slots, health, jobs, scheduler as scheduler_routes
 from backend.api.middleware import LoggingMiddleware
 from pathlib import Path
+from fastapi.middleware.cors import CORSMiddleware
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
@@ -57,6 +58,13 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     )
 
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8080"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 app.mount(
     "/media",
