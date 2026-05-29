@@ -5,9 +5,9 @@ from nicegui import ui
 
 def utc_clock() -> None:
 
-    with ui.card().classes("w-full bg-white border border-gray-200 rounded-xl shadow-sm p-5"):
+    with ui.card().classes("w-full bg-white border border-gray-200 rounded-xl shadow-sm p-3"):
 
-        datetime_label = ui.label().classes("text-2xl text-black")
+        datetime_label = ui.label().classes("text-lg text-black")
 
     def update_time() -> None:
         now = datetime.now(UTC)
