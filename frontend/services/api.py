@@ -128,3 +128,18 @@ def get_job_status(job_id: str) -> dict[str, Any] | None:
 
     except Exception:
         return None
+
+def get_job_events_url(
+    job_id: str
+) -> str:
+    """
+    Returns SSE endpoint URL for a job stream.
+
+    :param job_id:
+        Background job identifier.
+
+    :return:
+        Absolute SSE endpoint URL.
+    """
+
+    return f"{SERVER_BASE_URL}/jobs/{job_id}/events"

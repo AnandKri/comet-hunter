@@ -1,7 +1,7 @@
 TITLE = "Comet Hunter"
 DEVELOPER_NAME = "Anand Krishna"
 
-SERVER_BASE_URL = "http://localhost:8000"
+SERVER_BASE_URL = "http://127.0.0.1:8000"
 PORT = 8080
 
 GITHUB_URL = "https://github.com/anandkri/comet-hunter"
