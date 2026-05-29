@@ -96,6 +96,7 @@ class JobType(Enum):
 
 class JobEventType(str, Enum):
     JOB_RUNNING = "job.running"
+    JOB_QUEUED = "job.queued"
     JOB_COMPLETED = "job.completed"
     JOB_CANCELLED = "job.cancelled"
     JOB_FAILED = "job.failed"

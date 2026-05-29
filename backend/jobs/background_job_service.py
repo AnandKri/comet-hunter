@@ -2,8 +2,10 @@ from threading import Thread
 from backend.jobs.runner import run_job
 from backend.jobs.job import Job
 from backend.jobs.job_store import JobStore
-from backend.util.enums import JobType
+from backend.util.enums import JobType, JobStatus, JobEventType
 from backend.jobs.job_submission import JobSubmissionResult
+from backend.jobs.event_bus import event_bus
+from backend.jobs.event_models import JobEvent
 
 class BackgroundJobService:
     """
@@ -45,6 +47,17 @@ class BackgroundJobService:
             )
 
         job = self._job_store.create_job(job_type)
+
+        event_bus.publish(
+            job_id=job.id,
+            event=JobEvent(
+                job_id=job.id,
+                job_type=job.type,
+                job_status=JobStatus.QUEUED,
+                event=JobEventType.JOB_QUEUED,
+                data={}
+            )
+        )
 
         thread = Thread(target=run_job, args=(job.id, fn, *args), kwargs=kwargs, daemon=True)
         thread.start()
