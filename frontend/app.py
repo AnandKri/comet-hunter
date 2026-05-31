@@ -8,6 +8,9 @@ from components.active_slot_panel import active_slot_panel
 from components.utc_clock import utc_clock
 from components.sync_slots_panel import sync_slots_panel
 from components.event_stream_panel import event_stream_panel, handle_job_event
+from components.scheduler_panel import scheduler_panel
+from components.sync_frames_panel import sync_frames_panel
+from components.get_frames_panel import get_frames_panel
 from fastapi import Request
 
 def build_layout() -> None:
@@ -30,22 +33,29 @@ def build_layout() -> None:
         navbar()
 
         with ui.row().classes(
-            "w-full items-start gap-1 flex-grow no-wrap"
+            "items-start gap-1 flex-grow no-wrap"
         ):
+            
+            with ui.column().classes(
+                "w-[300px]"
+            ):
 
-            event_stream_panel()
+                event_stream_panel()
 
             with ui.column().classes(
-                "w-[350px] shrink-0 gap-1"
+                "w-[300px] gap-1"
             ):
 
                 health_panel()
                 utc_clock()
                 active_slot_panel()
                 sync_slots_panel()
+                scheduler_panel()
+                sync_frames_panel()
+                get_frames_panel()
 
             with ui.column().classes(
-                "flex-grow"
+                "min-w-0 flex-grow"
             ):
 
                 image_panel()
