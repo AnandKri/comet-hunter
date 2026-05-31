@@ -426,7 +426,7 @@ class ProcessedFileRepository:
 
         return [ProcessedFile.from_row(r) for r in result.data]
     
-    def get_files_by_observation_and_status(self, 
+    def get_paginated_files_by_observation_and_status(self, 
                                             instrument: Instrument, 
                                             status: FileStatus,
                                             observation_start_utc: datetime,
@@ -458,7 +458,7 @@ class ProcessedFileRepository:
                     SELECT COUNT(*) as total
                     FROM {self.table_name}
                     WHERE datetime_of_observation >= ?
-                    AND datatime_of_observation <= ?
+                    AND datetime_of_observation <= ?
                     AND instrument = ?
                     AND status = ?
                 """,
@@ -511,3 +511,52 @@ class ProcessedFileRepository:
                 files.append(ProcessedFile.from_row(r))
 
         return files, total
+    
+    def get_files_by_observation_and_status(self, 
+                                            instrument: Instrument, 
+                                            status: FileStatus,
+                                            observation_start_utc: datetime,
+                                            observation_end_utc: datetime,
+                                            ) -> list[ProcessedFile]:
+        
+        """
+        returns files for a given observation time period and status
+
+        :param instrument: Instrument used for observation
+        :param status: file status
+        :param observation_start_utc: starting utc timestamp of observation
+        :param observation_end_utc: ending utc timestamp of observation
+        :return: list of processed file domain entities 
+        """
+
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument must be Instrument enum")
+
+        if not isinstance(status, FileStatus):
+            raise ValueError("status must be FileStatus enum")
+        
+        spec = QuerySpec(
+            sql = f"""
+                    SELECT *
+                    FROM {self.table_name}
+                    WHERE datetime_of_observation >= ?
+                    AND datetime_of_observation <= ?
+                    AND instrument = ?
+                    AND status = ?
+                """,
+                operation=OperationType.READ,
+                params=(
+                    observation_start_utc.isoformat(),
+                    observation_end_utc.isoformat(),
+                    instrument.value,
+                    status.value
+                ),
+                fetch=FetchType.ALL
+        )
+
+        result = self._executor.execute(spec)
+
+        if not result.data:
+            return []
+
+        return [ProcessedFile.from_row(r) for r in result.data]

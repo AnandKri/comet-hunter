@@ -212,7 +212,7 @@ class Pipeline:
             observation_start_dt = parse_utc_datetime(observation_start_utc)
             observation_end_dt = parse_utc_datetime(observation_end_utc)
 
-            processed_files, total = self.process_service.get_files_by_observation_and_status(
+            processed_files, total = self.process_service.get_paginated_files_by_observation_and_status(
                 instrument, 
                 FileStatus.PROCESSED, 
                 observation_start_dt, 

@@ -295,6 +295,36 @@ class ProcessFileService:
             instrument: Instrument, 
             status: FileStatus, 
             observation_start_utc: datetime, 
+            observation_end_utc: datetime
+    ) -> tuple[list[ProcessedFile], int]:
+        
+        """
+        Returns list of file domain entities of a particular state, for a given observation time period and instrument
+
+        :param instrument: Instrument used for observation
+        :param state: State of the file
+        :param observation_start_utc: observation start time
+        :param observation_end_utc: observation end time
+        :return: list of processedfile domain entities
+        """
+        if not isinstance(instrument, Instrument):
+            raise ValueError("instrument should be a Instrument enum")
+        if not isinstance(status, FileStatus):
+            raise ValueError("status should be a FileStatus enum")
+        validate_time_window(observation_start_utc, observation_end_utc)
+
+        return self._processed_repository.get_files_by_observation_and_status(
+            instrument, 
+            status, 
+            observation_start_utc, 
+            observation_end_utc
+        )
+    
+    def get_paginated_files_by_observation_and_status(
+            self,
+            instrument: Instrument, 
+            status: FileStatus, 
+            observation_start_utc: datetime, 
             observation_end_utc: datetime,
             limit: int,
             offset: int
@@ -315,7 +345,7 @@ class ProcessFileService:
             raise ValueError("status should be a FileStatus enum")
         validate_time_window(observation_start_utc, observation_end_utc)
 
-        return self._processed_repository.get_files_by_observation_and_status(
+        return self._processed_repository.get_paginated_files_by_observation_and_status(
             instrument, 
             status, 
             observation_start_utc, 
