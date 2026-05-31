@@ -1,10 +1,11 @@
 from nicegui import ui
 from config import TITLE, DEVELOPER_NAME
 from datetime import datetime
+from styles.theme import FOOTER
 
 def footer() -> None:
 
-    with ui.row().classes("w-full items-center justify-center gap-2 bg-black text-white h-[50px] text-base shadow-sm"):
+    with ui.row().classes(f"{FOOTER}"):
 
         ui.label(f"© {datetime.now().year} {TITLE}")
         ui.label("|").classes("text-gray-500")

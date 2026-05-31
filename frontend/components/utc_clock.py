@@ -1,13 +1,13 @@
 from datetime import UTC, datetime
-
+from styles.theme import PANEL_CARD
 from nicegui import ui
 
 
 def utc_clock() -> None:
 
-    with ui.card().classes("w-full bg-white border border-gray-200 rounded-xl shadow-sm p-3"):
+    with ui.card().classes(f"{PANEL_CARD}"):
 
-        datetime_label = ui.label().classes("text-lg text-black")
+        datetime_label = ui.label().classes("text-sm text-black")
 
     def update_time() -> None:
         now = datetime.now(UTC)

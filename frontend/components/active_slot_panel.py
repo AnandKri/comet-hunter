@@ -1,46 +1,47 @@
 from nicegui import ui
 from services.api import get_active_slot, get_next_active_slot
+from styles.theme import PANEL_CARD, PANEL_TITLE, PRIMARY_BUTTON, ROW_BETWEEN
 
 def load_active_slot( start_input: ui.input, end_input: ui.input) -> None:
     
     slot = get_active_slot()
     if not slot:
         return
-    start_input.value = slot["start"]
-    end_input.value = slot["end"]
+    start_input.value = slot.start
+    end_input.value = slot.end
 
 def load_next_slot(start_input: ui.input, end_input: ui.input) -> None:
 
     slot = get_next_active_slot()
     if not slot:
         return
-    start_input.value = slot["start"]
-    end_input.value = slot["end"]
+    start_input.value = slot.start
+    end_input.value = slot.end
 
 def active_slot_panel() -> None:
 
-    with ui.column().classes("w-full rounded-xl bg-white border border-gray-200 p-3 gap-2 shadow-sm"):
+    with ui.column().classes(f"{PANEL_CARD}"):
 
-        ui.label("Active Slot Information").classes("text-lg font-semibold text-gray-800")
+        ui.label("Active Slot Information").classes(f"{PANEL_TITLE}")
 
-        with ui.column().classes("w-full gap-2"):
+        with ui.column().classes("w-full gap-1"):
 
-            with ui.row().classes("w-full items-center gap-2"):
+            with ui.row().classes("w-full items-center"):
 
-                ui.label("Start").classes("w-[70px] text-base text-gray-700")
+                ui.label("Start").classes("w-[30px] text-sm text-gray-700")
                 start_input = ui.input().props("readonly outlined").classes("flex-grow")
 
-            with ui.row().classes("w-full items-center gap-2"):
+            with ui.row().classes("w-full items-center"):
 
-                ui.label("End").classes("w-[70px] text-base text-gray-700")
+                ui.label("End").classes("w-[30px] text-sm text-gray-700")
                 end_input = ui.input().props("readonly outlined").classes("flex-grow")
 
         with ui.row().classes("w-full gap-1"):
 
             ui.button("Get Active Slot", on_click = lambda: load_active_slot(start_input,end_input)).classes(
-                "flex-1 h-5 rounded-lg bg-blue-600 text-white text-sm font-medium whitespace-nowrap"
+                f"flex-1 {PRIMARY_BUTTON} whitespace-nowrap"
                 )
 
             ui.button("Get Next Slot", on_click = lambda: load_next_slot(start_input,end_input)).classes(
-                "flex-1 h-5 rounded-lg bg-blue-600 text-white text-sm font-medium whitespace-nowrap"
+                f"flex-1 {PRIMARY_BUTTON} whitespace-nowrap"
             )
