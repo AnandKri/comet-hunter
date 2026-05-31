@@ -41,7 +41,9 @@ def start_scheduler(
 
         return ApiSuccessResponse[JobQueuedResponse](
             data=JobQueuedResponse(
-                job_id=job.job.id
+                job_id=job.job.id,
+                existing=job.existing,
+                status=job.job.status.value
             )
         )
     
