@@ -32,6 +32,12 @@ This requires a **robust automation** of the complete workflow: from RAW image i
 - Scheduler-driven ingestion workflows
 - Interactive frontend visualization
 
+<h2>User Interface</h2>
+
+<p align="center">
+  <img src="docs/images/ui-dashboard.png" width="900">
+</p>
+
 ## Getting Started
 
 #### Clone Repository
