@@ -21,3 +21,8 @@ comet-hunter.db*
 
 #coronagraph raw files
 data/
+
+#python packaging
+build/
+dist/
+*.egg-info
