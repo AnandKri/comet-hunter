@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comet-hunter"
+version = "0.1.0"
+description = "Astronomical image ingestion and processing system for Sungrazer project"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Anand Krishna" }
+]
+
+dependencies = [
+    "fastapi>=0.136",
+    "nicegui>=3.12",
+    "requests>=2.34",
+    "numpy>=2.4",
+    "scipy>=1.17",
+    "sunpy>=7.1",
+    "pydantic>=2.13",
+    "matplotlib>=3.10",
+    "starlette>=1.2"
+]
+
+[project.scripts]
+comet-hunter = "comet_hunter.cli:main"
+
+[tool.setuptools]
+packages = [
+    "comet_hunter"
+]
