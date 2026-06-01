@@ -81,7 +81,7 @@ def main() -> None:
     ui.run(
         host="0.0.0.0",
         port=PORT,
-        reload=True,
+        reload=False,
         title=TITLE
     )
 
