@@ -17,7 +17,7 @@ process_c3.py
 test.py
 
 #database
-comet-hunter.db
+comet-hunter.db*
 
 #coronagraph raw files
 data/
