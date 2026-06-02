@@ -3,6 +3,7 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from datetime import datetime, UTC
 from backend.core.request_context import get_request_id
+from backend.core.storage import LOG_DIR
 
 class RequestIdFilter(logging.Filter):
     def filter(self, record):
@@ -10,13 +11,12 @@ class RequestIdFilter(logging.Filter):
         return True
 
 def setup_logging():
-    Path("logs").mkdir(exist_ok=True)
-
+    LOG_DIR.mkdir(exist_ok=True)
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    log_file = f"logs/app_{timestamp}.log"
+    log_file = LOG_DIR / f"app_{timestamp}.log"
 
     handler = TimedRotatingFileHandler(
-        log_file,
+        str(log_file),
         when="midnight",
         backupCount=7,
         encoding="utf-8"

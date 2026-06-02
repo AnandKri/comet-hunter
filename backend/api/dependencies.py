@@ -12,6 +12,7 @@ from backend.pipeline.scheduler import Scheduler
 from backend.jobs.job_store import job_store, JobStore
 from backend.jobs.background_job_service import BackgroundJobService
 from backend.jobs.event_bus import event_bus, EventBus
+from backend.core.storage import RAW_DIR, PROCESSED_DIR
 
 background_job_service = BackgroundJobService(job_store)
 
@@ -26,12 +27,12 @@ slot_service = SlotService(slot_repo)
 download_service = DownloadFileService(
     processed_repository=processed_repo,
     metadata_service=metadata_service,
-    download_directory=Path("data/raw"),
+    download_directory=RAW_DIR,
 )
 process_service = ProcessFileService(
     processed_repository=processed_repo,
     metadata_service=metadata_service,
-    processed_directory=Path("data/processed"),
+    processed_directory=PROCESSED_DIR,
 )
 
 pipeline = Pipeline(

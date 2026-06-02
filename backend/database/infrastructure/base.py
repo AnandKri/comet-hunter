@@ -2,6 +2,7 @@ import sqlite3
 from backend.util.constants import DB
 from pathlib import Path
 from typing import ClassVar, Optional
+from backend.core.storage import DB_PATH
 
 class DatabaseBase:
     """
@@ -23,7 +24,7 @@ class DatabaseBase:
         Must be called at application startup
         """
         if cls._db_path is None:
-            cls._db_path = Path(f"{DB.NAME}.db")
+            cls._db_path = DB_PATH
             cls._db_path.touch(exist_ok=True)
         
             with sqlite3.connect(cls._db_path) as conn:
