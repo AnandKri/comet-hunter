@@ -90,7 +90,7 @@ async def connect_job_stream(
         );
 
         window.eventSource.addEventListener(
-            'download.completes',
+            'download.completed',
             handleEvent
         );
 
