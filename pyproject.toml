@@ -21,7 +21,10 @@ dependencies = [
     "sunpy>=7.1",
     "pydantic>=2.13",
     "matplotlib>=3.10",
-    "starlette>=1.2"
+    "starlette>=1.2",
+    "reproject>=0.19",
+    "mpl_animators>=1.2",
+    "tzdata>=2026.1"
 ]
 
 [project.scripts]
