@@ -40,6 +40,52 @@ This requires a **robust automation** of the complete workflow: from RAW image i
 
 ## Getting Started
 
+### End User Installation
+
+#### Install Comet Hunter directly from PyPI:
+
+```bash
+pip install comet-hunter
+```
+
+#### End User Commands
+
+Start the application
+
+```bash
+comet-hunter start
+```
+
+Check application status
+
+```bash
+comet-hunter status
+```
+
+Stop the application
+
+```bash
+comet-hunter stop
+```
+
+#### Note
+
+When started, the application will be available at:
+
+`http://localhost:8080`
+
+Application data, logs, and database files are stored in:
+
+```
+Windows:
+C:\Users\<username>\.comet_hunter
+
+Linux/macOS:
+~/.comet_hunter
+```
+
+### Development Setup
+
 #### Clone Repository
 
 ```bash
@@ -65,7 +111,7 @@ python -m venv .venv
 #### Install Dependencies
 
 ```bash
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
 
 #### Run Backend
@@ -83,5 +129,5 @@ python frontend/app.py
 ## Documentation
 
 <a href="https://anandkri.github.io/comet-hunter/" target="_blank">
-View Full Documentation
+View full documentation here
 </a>

@@ -8,8 +8,16 @@ version = "0.1.0"
 description = "Astronomical image ingestion and processing system for Sungrazer project"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
 authors = [
     { name = "Anand Krishna" }
+]
+
+keywords = [
+    "astronomy",
+    "comet",
+    "system-design",
+    "processing-pipeline"
 ]
 
 dependencies = [
@@ -26,6 +34,10 @@ dependencies = [
     "mpl_animators>=1.2",
     "tzdata>=2026.1"
 ]
+
+[project.urls]
+Repository = "https://github.com/AnandKri/comet-hunter"
+Documentation = "https://anandkri.github.io/comet-hunter/"
 
 [project.scripts]
 comet-hunter = "comet_hunter.cli:main"
