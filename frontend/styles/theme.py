@@ -67,3 +67,12 @@ h-[44px]
 text-base
 shadow-sm
 """
+
+EVENT_COLORS = {
+    "job.running": "text-blue-700",
+    "job.completed": "text-green-700",
+    "job.failed": "text-red-700",
+    "job.cancelled": "text-gray-700",
+}
+
+DEFAULT_EVENT_COLOR = "text-purple-700"

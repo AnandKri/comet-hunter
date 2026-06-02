@@ -12,6 +12,7 @@ from styles.theme import (
 )
 from models.instruments import Instrument
 
+from config import RETRIEVE_DATA_SINCE_DAYS
 
 def get_frames_panel() -> None:
 
@@ -30,7 +31,7 @@ def get_frames_panel() -> None:
         today = now.date()
 
         min_date = (
-            today - timedelta(days=7)
+            today - timedelta(days=RETRIEVE_DATA_SINCE_DAYS)
         )
         
         selected_start = (
@@ -252,7 +253,7 @@ def get_frames_panel() -> None:
             ):
 
                 ui.notify(
-                    "Date range must be within last 7 days",
+                    f"Date range must be within last {RETRIEVE_DATA_SINCE_DAYS} days",
                     type="warning"
                 )
 

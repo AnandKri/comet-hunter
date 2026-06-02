@@ -6,16 +6,7 @@ from state.event_store import (
     append_event,
     notify_job_subscribers
 )
-from styles.theme import PANEL_CARD, PANEL_TITLE, PRIMARY_BUTTON
-
-EVENT_COLORS = {
-    "job.running": "text-blue-700",
-    "job.completed": "text-green-700",
-    "job.failed": "text-red-700",
-    "job.cancelled": "text-gray-700",
-}
-
-DEFAULT_EVENT_COLOR = "text-purple-700"
+from styles.theme import PANEL_CARD, PANEL_TITLE, PRIMARY_BUTTON, EVENT_COLORS, DEFAULT_EVENT_COLOR
 
 event_container: ui.column | None = None
 

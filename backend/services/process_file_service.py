@@ -15,6 +15,14 @@ import matplotlib.pyplot as plt
 import logging
 from threading import Event
 from backend.jobs.exceptions import CancelledError
+from backend.config import (
+    PROCESS_KERNEL_SIZE,
+    PROCESS_LOOKBACK_BUFFER_HOUR, 
+    PROCESS_MIN_OBSERVATION_GAP_MINUTES, 
+    PROCESS_MAX_OBSERVATION_GAP_MINUTES, 
+    PROCESS_TIMEOUT_MINUTES,
+    PROCESS_MAX_WORKERS
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,16 +35,16 @@ class ProcessFileService:
     - managing processing retries
     """
 
-    LOOKBACK_BUFFER = timedelta(hours=1)
-    MIN_OBSERVATION_GAP = timedelta(minutes=8)
-    MAX_OBSERVATION_GAP = timedelta(minutes=16)
-    PROCESSING_TIMEOUT = timedelta(minutes=5)
+    LOOKBACK_BUFFER = timedelta(hours=PROCESS_LOOKBACK_BUFFER_HOUR)
+    MIN_OBSERVATION_GAP = timedelta(minutes=PROCESS_MIN_OBSERVATION_GAP_MINUTES)
+    MAX_OBSERVATION_GAP = timedelta(minutes=PROCESS_MAX_OBSERVATION_GAP_MINUTES)
+    PROCESSING_TIMEOUT = timedelta(minutes=PROCESS_TIMEOUT_MINUTES)
 
     def __init__(self,
                  processed_repository: ProcessedFileRepository,
                  metadata_service: MetadataService,
                  processed_directory: Path,
-                 max_workers: int = 4):
+                 max_workers: int = PROCESS_MAX_WORKERS):
         self._processed_repository = processed_repository
         self._metadata_service = metadata_service
         self._processed_directory = processed_directory
@@ -473,7 +481,7 @@ class ProcessFileService:
         else:
             data /= exposure
 
-        kernel_size = 25
+        kernel_size = PROCESS_KERNEL_SIZE
         smooth = medfilt2d(data, kernel_size=kernel_size)
         unsharp = data - smooth
 

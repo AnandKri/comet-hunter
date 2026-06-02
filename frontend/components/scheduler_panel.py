@@ -12,8 +12,7 @@ from styles.theme import (
     PANEL_CARD,
     PANEL_TITLE,
     PRIMARY_BUTTON,
-    STATUS_BADGE,
-    ROW_BETWEEN
+    STATUS_BADGE
 )
 from models.instruments import Instrument
 

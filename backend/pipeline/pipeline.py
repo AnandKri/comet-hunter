@@ -1,3 +1,4 @@
+from backend.config import PIPELINE_PROCESS_PADDING_HOURS
 from backend.services.slot_service import SlotService
 from backend.services.metadata_service import MetadataService
 from backend.services.download_file_service import DownloadFileService
@@ -10,9 +11,9 @@ from backend.jobs.event_models import JobEvent
 from backend.jobs.event_bus import event_bus
 from datetime import datetime, UTC, timedelta
 from threading import Event
-from dataclasses import field
 from typing import Any
 import logging
+from backend.config import INGESTION_CYCLE_INTERVAL_MINUTES
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +175,7 @@ class Pipeline:
             return RunIngestionCycleResult(
                 metadata_synced,
                 downloaded,
-                timedelta(minutes=5)
+                timedelta(minutes=INGESTION_CYCLE_INTERVAL_MINUTES)
             )
         except CancelledError:
             logger.info("Ingestion cycle execution cancelled")
@@ -269,8 +270,8 @@ class Pipeline:
             observation_end_dt = parse_utc_datetime(observation_end_utc)
             now_utc = datetime.now(UTC)
 
-            padded_start = observation_start_dt - timedelta(hours=12)
-            padded_end = min(observation_end_dt + timedelta(hours=12), now_utc)
+            padded_start = observation_start_dt - timedelta(hours=PIPELINE_PROCESS_PADDING_HOURS)
+            padded_end = min(observation_end_dt + timedelta(hours=PIPELINE_PROCESS_PADDING_HOURS), now_utc)
 
             metadata_synced = self.metadata_service.sync_metadata(
                 instrument=instrument,

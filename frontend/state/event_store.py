@@ -1,6 +1,6 @@
 from typing import Callable
+from config import MAX_EVENTS
 
-MAX_EVENTS = 50
 EVENTS: list[dict] = []
 
 job_event_subscribers: list[Callable[[dict], None]] = []

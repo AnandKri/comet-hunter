@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 from dataclasses import replace
 import requests
 from datetime import datetime, timedelta, UTC
@@ -15,6 +15,10 @@ from backend.services.metadata_service import MetadataService
 import logging
 from backend.jobs.exceptions import CancelledError
 from threading import Event
+from backend.config import (
+    DOWNLOAD_MAX_WORKERS, 
+    DOWNLOAD_TIMEOUT_SECONDS
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +37,7 @@ class DownloadFileService:
                  processed_repository: ProcessedFileRepository,
                  metadata_service: MetadataService,
                  download_directory: Path,
-                 max_workers: int = 4):
+                 max_workers: int = DOWNLOAD_MAX_WORKERS):
         self._processed_repository = processed_repository
         self._metadata_service = metadata_service
         self._download_directory = download_directory
@@ -369,7 +373,7 @@ class DownloadFileService:
         :return: Local destination
         """
         path = self._download_directory / file.raw_file_name
-        response = requests.get(url, stream=True, timeout=60)
+        response = requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT_SECONDS)
         response.raise_for_status()
         with open(path, "wb") as f:
             for chunk in response.iter_content(8192):

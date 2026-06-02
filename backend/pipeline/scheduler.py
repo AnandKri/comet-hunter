@@ -5,6 +5,7 @@ from backend.pipeline.pipeline import Pipeline
 from backend.pipeline.models import SchedulerStartResult
 from backend.jobs.exceptions import CancelledError
 import logging
+from backend.config import INGESTION_CYCLE_INTERVAL_MINUTES
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ class Scheduler:
     until explicitly stopped.
     """
 
-    DEFAULT_INTERVAL_MINUTES = timedelta(minutes=5)
+    DEFAULT_INTERVAL_MINUTES = timedelta(minutes=INGESTION_CYCLE_INTERVAL_MINUTES)
 
     def __init__(self, pipeline: Pipeline):
         self.pipeline = pipeline

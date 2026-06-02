@@ -13,6 +13,7 @@ from backend.jobs.exceptions import CancelledError
 from threading import Event
 import re
 import logging
+from backend.config import METADATA_TIMEOUT_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,7 @@ class MetadataService:
             metadata_url = Url.build_metadata_url(downlink_dt_str_utc, instrument)
 
             try:
-                response = requests.get(metadata_url, timeout=15)
+                response = requests.get(metadata_url, timeout=METADATA_TIMEOUT_SECONDS)
                 response.raise_for_status()
                 last_modified_map = self._fetch_last_modified_map(instrument, downlink_current_utc)
                 results.append((response.text, last_modified_map))
@@ -335,7 +336,7 @@ class MetadataService:
         if not isinstance(instrument, Instrument):
             raise ValueError("instrument should be a Instrument enum")
 
-        slot = [slot_service.sync_and_get_active_slot()]
+        slot = [slot_service.get_active_slot()]
 
         if not slot:
             return []

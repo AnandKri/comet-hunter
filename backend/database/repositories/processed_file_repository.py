@@ -7,6 +7,7 @@ from backend.database.domain.processed_file import ProcessedFile
 from backend.database.infrastructure.query_spec import QuerySpec
 from backend.database.infrastructure.query_executor import QueryExecutor
 import logging
+from backend.config import MAX_DOWNLOADING_ATTEMPTS, MAX_PROCESSING_ATTEMPTS
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,8 @@ class ProcessedFileRepository:
     """
     
     table_name: ClassVar[str] = DB.PROCESSED_FILE
-    max_processing_attempts: ClassVar[int] = 2
-    max_downloading_attempts: ClassVar[int] = 2
+    max_processing_attempts: ClassVar[int] = MAX_PROCESSING_ATTEMPTS
+    max_downloading_attempts: ClassVar[int] = MAX_DOWNLOADING_ATTEMPTS
 
     def __init__(self, executor: QueryExecutor):
         self._executor = executor

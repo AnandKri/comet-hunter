@@ -231,7 +231,6 @@ class SlotService:
             logger.exception("Slot state reconciliation failed")
             raise
 
-
     def delete_completed_slots(self) -> int:
         """
         Deletes completed (`DONE`) slots.
