@@ -9,14 +9,16 @@ from backend.util.funcs import validate_time_window
 from dataclasses import replace
 from datetime import datetime, timedelta, UTC
 import numpy as np
-from scipy.signal import medfilt2d
+from scipy.ndimage import gaussian_filter
 from sunpy.map import Map
 import matplotlib.pyplot as plt
 import logging
 from threading import Event
 from backend.jobs.exceptions import CancelledError
 from backend.config import (
-    PROCESS_KERNEL_SIZE,
+    PROCESS_IMGMIN,
+    PROCESS_IMGMAX,
+    PROCESS_SIGMA,
     PROCESS_LOOKBACK_BUFFER_HOUR, 
     PROCESS_MIN_OBSERVATION_GAP_MINUTES, 
     PROCESS_MAX_OBSERVATION_GAP_MINUTES, 
@@ -163,42 +165,16 @@ class ProcessFileService:
 
             if instrument == Instrument.C2:
                 files = self._processed_repository.get_files_by_observation(instrument, observation_start_utc, observation_end_utc)
-                for file in files:
-                    if cancel_event and cancel_event.is_set():
-                        raise CancelledError()
-                    if file.status == FileStatus.DOWNLOADED:
-                        try:
-                            updated_file = file.transition_to(FileStatus.READY)
-                            if self._processed_repository.save(updated_file):
-                                updated_count += 1
-                        except ValueError:
-                            logger.warning("Invalid READY state transition skipped")
+                updated_count = self._mark_ready_simple(files, cancel_event)
             else:
-                fetch_start_time = observation_start_utc - self.LOOKBACK_BUFFER
-                files = self._processed_repository.get_files_by_observation(instrument, fetch_start_time, observation_end_utc)
-                prev = None
-                for file in files:
-                    if cancel_event and cancel_event.is_set():
-                        raise CancelledError()
-                    file_observation_datetime = file.datetime_of_observation
-                    if (file_observation_datetime >= observation_start_utc) and (file.status == FileStatus.DOWNLOADED):
-                        if prev:
-                            observation_difference = file_observation_datetime - prev_observation_datetime
-                            if  self.MIN_OBSERVATION_GAP <= observation_difference <= self.MAX_OBSERVATION_GAP:
-                                try:
-                                    updated_file = file.transition_to(FileStatus.READY)
-                                    updated_file = replace(
-                                        updated_file,
-                                        previous_file_name=prev.raw_file_name
-                                    )
-                                    if self._processed_repository.save(updated_file):
-                                        updated_count += 1
-                                except ValueError:
-                                    logger.warning("Invalid READY state transition skipped")
-                    
-                    if file.status in {FileStatus.DOWNLOADED, FileStatus.PROCESSED, FileStatus.READY}:
-                        prev = file
-                        prev_observation_datetime = file_observation_datetime
+                # A ###################### traditionally we apply pairing logic for C3 ######################
+                # fetch_start_time = observation_start_utc - self.LOOKBACK_BUFFER
+                # files = self._processed_repository.get_files_by_observation(instrument, fetch_start_time, observation_end_utc)
+                # updated_count = self._mark_ready_in_pairs(files, observation_start_utc, cancel_event)
+
+                # B ###################### following the occums razor, a simple algorithm is proved to give better results ######################
+                files = self._processed_repository.get_files_by_observation(instrument, observation_start_utc, observation_end_utc)
+                updated_count = self._mark_ready_simple(files, cancel_event)
             logger.info(
                 "File readiness evaluation completed",
                 extra={"marked_ready": updated_count}
@@ -436,12 +412,16 @@ class ProcessFileService:
         if file.instrument == Instrument.C2:
             processed_array = self._apply_unsharp_masking(file.raw_file_path, exposure_time)
         elif file.instrument == Instrument.C3:
-            previous_file_path = self._processed_repository.read_file_by_name(file.previous_file_name).raw_file_path
             
-            if not previous_file_path or not file.previous_file_name:
-                raise ValueError(f"Previous file missing or not downloaded: for {file.raw_file_name} - {file.previous_file_name}")
-            
-            processed_array = self._apply_running_difference(file.raw_file_path, previous_file_path, exposure_time)
+            # A ###################### for running diff, we need the prev file ######################
+            # previous_file_path = self._processed_repository.read_file_by_name(file.previous_file_name).raw_file_path
+            # if not previous_file_path or not file.previous_file_name:
+            #     raise ValueError(f"Previous file missing or not downloaded: for {file.raw_file_name} - {file.previous_file_name}")
+            # processed_array = self._apply_running_difference(file.raw_file_path, previous_file_path, exposure_time)
+
+            # B ###################### for unsharp masking we will just use the current file ######################
+            processed_array = self._apply_unsharp_masking(file.raw_file_path, exposure_time)
+
         else:
             raise ValueError(f"Unsupported instrument: {file.instrument}")
         
@@ -462,7 +442,7 @@ class ProcessFileService:
         :param array: processed array representing the processed file
         :param path: processed file path
         """
-        plt.imsave(path, array, cmap=cmap)
+        plt.imsave(path, array, cmap=cmap, vmin=PROCESS_IMGMIN, vmax=PROCESS_IMGMAX)
 
     def _apply_unsharp_masking(self, current_file_path: Path, exposure: float) -> np.ndarray:
         """
@@ -481,11 +461,12 @@ class ProcessFileService:
         else:
             data /= exposure
 
-        kernel_size = PROCESS_KERNEL_SIZE
-        smooth = medfilt2d(data, kernel_size=kernel_size)
-        unsharp = data - smooth
+        sigma = PROCESS_SIGMA
+        blur = gaussian_filter(data, sigma=sigma)
+        unsharp = data - blur
+        unsharp = unsharp / (np.std(unsharp) + 1e-6)
 
-        return np.fliplr(unsharp)
+        return np.rot90(unsharp, 2)
     
     def _apply_running_difference(self, current_file_path: Path, previous_file_path: Path, exposure: float) -> np.ndarray:
         """
@@ -509,3 +490,44 @@ class ProcessFileService:
         diff = current - previous
 
         return np.fliplr(diff)
+    
+    def _mark_ready_simple(self, files: List[ProcessedFile], cancel_event: Event) -> int:
+        updated_count = 0
+        for file in files:
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+            if file.status == FileStatus.DOWNLOADED:
+                try:
+                    updated_file = file.transition_to(FileStatus.READY)
+                    if self._processed_repository.save(updated_file):
+                        updated_count += 1
+                except ValueError:
+                    logger.warning("Invalid READY state transition skipped")
+        return updated_count
+    
+    def _mark_ready_in_pairs(self, files: List[ProcessedFile], observation_start_utc: datetime, cancel_event: Event) -> int:
+        updated_count = 0
+        prev = None
+        for file in files:
+            if cancel_event and cancel_event.is_set():
+                raise CancelledError()
+            file_observation_datetime = file.datetime_of_observation
+            if (file_observation_datetime >= observation_start_utc) and (file.status == FileStatus.DOWNLOADED):
+                if prev:
+                    observation_difference = file_observation_datetime - prev_observation_datetime
+                    if  self.MIN_OBSERVATION_GAP <= observation_difference <= self.MAX_OBSERVATION_GAP:
+                        try:
+                            updated_file = file.transition_to(FileStatus.READY)
+                            updated_file = replace(
+                                updated_file,
+                                previous_file_name=prev.raw_file_name
+                            )
+                            if self._processed_repository.save(updated_file):
+                                updated_count += 1
+                        except ValueError:
+                            logger.warning("Invalid READY state transition skipped")
+            
+            if file.status in {FileStatus.DOWNLOADED, FileStatus.PROCESSED, FileStatus.READY}:
+                prev = file
+                prev_observation_datetime = file_observation_datetime
+        return updated_count
