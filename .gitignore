@@ -4,6 +4,8 @@ __pycache__/
 #virtual environment
 venv/
 test-install/
+test-pypi/
+pypi/
 
 # mkdocs build files
 site/
