@@ -1,6 +1,14 @@
-# 0.1.0
+# 0.2.1
 
-Initial public release.
+### Added
+- Unsharp masking for both LASCO C2 and C3 imagery
+- Preload mechanisms (neighboour and full preload)
+- Increase image panel size
+
+### Improved
+- Processing quality
+- Loading full size images
+- Smooth image viewing experience 
 
 Features:
 - Metadata synchronization
