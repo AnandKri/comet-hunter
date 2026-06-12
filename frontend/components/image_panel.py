@@ -8,7 +8,10 @@ from state.frame_store import (
     total_frames,
     next_frame,
     previous_frame,
-    subscribe_to_frame_updates
+    subscribe_to_frame_updates,
+    next_frame_object,
+    previous_frame_object,
+    all_frames
 )
 from styles.theme import (
     PANEL_CARD,
@@ -16,6 +19,49 @@ from styles.theme import (
     PRIMARY_BUTTON
 )
 
+def preload_neighbors() -> None:
+
+    next_frame = next_frame_object()
+
+    if next_frame:
+
+        ui.run_javascript(
+            f"""
+            const img = new Image();
+            img.src = "{SERVER_BASE_URL}{next_frame.processed_file_url}";
+            """
+        )
+
+    previous_frame = previous_frame_object()
+
+    if previous_frame:
+
+        ui.run_javascript(
+            f"""
+            const img = new Image();
+            img.src = "{SERVER_BASE_URL}{previous_frame.processed_file_url}";
+            """
+        )
+
+def preload_all_frames() -> None:
+
+    urls = [
+        f"{SERVER_BASE_URL}{frame.processed_file_url}"
+        for frame in all_frames()
+    ]
+
+    ui.run_javascript(
+        f"""
+        const urls = {urls};
+
+        urls.forEach(url => {{
+
+            const img = new Image();
+
+            img.src = url;
+        }});
+        """
+    )
 
 def image_panel() -> None:
 
@@ -71,6 +117,11 @@ def image_panel() -> None:
             f"{current_position()} / {total_frames()}"
         )
 
+        preload_neighbors()
+
+        if current_position() == 1:
+            preload_all_frames()
+
     with ui.column().classes(
         f"{PANEL_CARD} w-full h-full items-center"
     ):
@@ -85,8 +136,9 @@ def image_panel() -> None:
             TEMP_IMAGE_URL
         ).classes(
             """
-            w-[800px]
-            h-[800px]
+            relative
+            w-[1024px]
+            h-[1024px]
             border
             border-gray-200
             rounded-lg
@@ -129,6 +181,16 @@ def image_panel() -> None:
             ).classes(
                 f"{PRIMARY_BUTTON} flex-1"
             )
+        
+        ui.keyboard(
+            on_key=lambda e: (
+                next_frame()
+                if e.key.arrow_right
+                else previous_frame()
+                if e.key.arrow_left
+                else None
+            )
+        )
 
     subscribe_to_frame_updates(
         refresh_panel

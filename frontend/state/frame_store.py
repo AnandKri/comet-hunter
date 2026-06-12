@@ -84,3 +84,28 @@ def total_frames() -> int:
 def current_position() -> int:
 
     return current_index + 1
+
+def next_frame_object() -> ProcessedFile | None:
+
+    if not frames:
+        return None
+
+    if current_index >= len(frames) - 1:
+        return None
+
+    return frames[current_index + 1]
+
+
+def previous_frame_object() -> ProcessedFile | None:
+
+    if not frames:
+        return None
+
+    if current_index <= 0:
+        return None
+
+    return frames[current_index - 1]
+
+def all_frames() -> list[ProcessedFile]:
+
+    return frames
